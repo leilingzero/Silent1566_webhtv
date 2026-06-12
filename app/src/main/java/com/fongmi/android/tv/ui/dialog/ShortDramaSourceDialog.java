@@ -104,6 +104,7 @@ public class ShortDramaSourceDialog {
             if (TextUtils.isEmpty(rule)) continue;
             String r = rule.trim().toLowerCase(Locale.ROOT);
             if (key.equals(r) || name.equals(r)) return true;
+            if (key.contains(r) || name.contains(r)) return true;
         }
         return false;
     }
