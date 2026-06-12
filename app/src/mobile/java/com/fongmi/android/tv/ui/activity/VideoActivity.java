@@ -113,6 +113,9 @@ import java.util.Objects;
 
 public class VideoActivity extends PlaybackActivity implements Clock.Callback, CustomKeyDown.Listener, TrackDialog.Listener, ControlDialog.Listener, FlagAdapter.OnClickListener, EpisodeAdapter.OnClickListener, QualityAdapter.OnClickListener, QuickAdapter.OnClickListener, ParseAdapter.OnClickListener, CastDialog.Listener, InfoDialog.Listener {
 
+    private static final int SHORT_DRAMA_SCALE = 4;
+    private static final int SHORT_DRAMA_EDGE_MARGIN_DP = 12;
+
     private ActivityVideoBinding mBinding;
     private ViewGroup.LayoutParams mFrameParams;
     private Observer<Result> mObserveDetail;
@@ -327,6 +330,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         else mBinding.progressLayout.showProgress();
         showProgress();
         setAnimator();
+        if (isShortDramaSource()) enterShortDramaFullscreen();
     }
 
     @Override
@@ -733,7 +737,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void onBack() {
-        if (isFullscreen()) exitFullscreen();
+        if (isFullscreen() && isShortDramaSource()) finishShortDrama();
+        else if (isFullscreen()) exitFullscreen();
         else finish();
     }
 
@@ -1330,6 +1335,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
                 hideProgress();
                 checkControl();
                 player().reset();
+                applyShortDramaMode();
                 break;
             case Player.STATE_ENDED:
                 checkEnded(true);
@@ -1564,6 +1570,46 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         Util.toggleFullscreen(this, this.fullscreen = fullscreen);
     }
 
+    private boolean isShortDramaSource() {
+        Site site = getSite();
+        return Setting.isShortDramaSiteEnabled(site == null ? getKey() : site.getKey(), site == null ? "" : site.getName());
+    }
+
+    private void applyShortDramaMode() {
+        if (!isShortDramaSource()) return;
+        enterShortDramaFullscreen();
+        setShortDramaScale();
+        mBinding.exo.postDelayed(this::setShortDramaScale, 250);
+        hideControl();
+    }
+
+    private void enterShortDramaFullscreen() {
+        if (!isFullscreen()) {
+            setFullscreen(true);
+            mBinding.video.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+            setRequestedOrientation(isPort() ? ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT : ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
+            mKeyDown.resetScale();
+        }
+        setShortDramaScale();
+        hideControl();
+        ViewCompat.requestApplyInsets(mBinding.getRoot());
+    }
+
+    private void setShortDramaScale() {
+        if (mHistory == null) {
+            setScale(SHORT_DRAMA_SCALE);
+        } else if (mHistory.getScale() == -1) {
+            setScale(SHORT_DRAMA_SCALE);
+        } else {
+            setScale(getScale());
+        }
+    }
+
+    private void finishShortDrama() {
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
+        finish();
+    }
+
     private boolean isInitAuto() {
         return initAuto;
     }
@@ -1774,6 +1820,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     protected void onBackInvoked() {
         if (isVisible(mBinding.control.getRoot())) {
             hideControl();
+        } else if (isFullscreen() && isShortDramaSource()) {
+            finishShortDrama();
         } else if (isFullscreen() && !isLock()) {
             exitFullscreen();
         } else if (!isLock()) {
