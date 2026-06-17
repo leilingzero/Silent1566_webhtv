@@ -122,6 +122,16 @@ public class CollectActivity extends BaseActivity implements CollectAdapter.OnCl
     @Override
     protected void initEvent() {
         mBinding.searchColumn.setOnClickListener(v -> toggleSearchColumn());
+        mBinding.searchColumn.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                // 从切换按钮按下键，返回到搜索结果的第一个项
+                if (mBinding.recycler.getChildCount() > 0) {
+                    mBinding.recycler.getChildAt(0).requestFocus();
+                    return true;
+                }
+            }
+            return false;
+        });
     }
 
     private void setRecyclerView() {
@@ -409,8 +419,17 @@ public class CollectActivity extends BaseActivity implements CollectAdapter.OnCl
         if (event.getAction() != KeyEvent.ACTION_DOWN || position < 0) return false;
         int count = getCount();
         if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) return onSearchDown(position, count);
-        if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return position < count;
+        if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return onSearchUp(position, count);
         if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) return position % count == count - 1;
+        return false;
+    }
+
+    private boolean onSearchUp(int position, int count) {
+        // 如果在第一行，按上键跳转到切换按钮
+        if (position < count) {
+            mBinding.searchColumn.requestFocus();
+            return true;
+        }
         return false;
     }
 
