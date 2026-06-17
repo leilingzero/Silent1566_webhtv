@@ -351,9 +351,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
         setLogo();
         setFunc();
         getHistory();
-        boolean autoLoad = Setting.isHomeVodAutoLoad();
-        SpiderDebug.log("startup", "home_vod_auto_load=%s", autoLoad);
-        if (autoLoad) getVideo();
+        getVideo();
         setFocus();
         App.post(this::prewarmWebView, 1500);
         SpiderDebug.log("startup", "home showContent end cost=%sms", System.currentTimeMillis() - App.time());
@@ -405,6 +403,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
         mResult = Result.empty();
         mHomeResult = Result.empty();
         loadingHomeCategory = false;
+        if (!Setting.isHomeVodAutoLoad()) mBinding.typeRecycler.setVisibility(View.GONE);
         clearRecommendRows();
         mAdapter.add("progress");
         mViewModel.homeContent();
@@ -426,7 +425,19 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
             return;
         }
         mTypeAdapter.addAll(result.getTypes());
-        mBinding.typeRecycler.setVisibility(View.VISIBLE);
+        // 只有在"默认加载点播"开启时才显示分类按钮
+        updateTypeRecyclerVisibility();
+    }
+
+    private void updateTypeRecyclerVisibility() {
+        // 只有在有分类数据且"默认加载点播"开启时才显示分类按钮
+        if (mTypeAdapter.getItemCount() > 0) {
+            if (Setting.isHomeVodAutoLoad()) {
+                mBinding.typeRecycler.setVisibility(View.VISIBLE);
+            } else {
+                mBinding.typeRecycler.setVisibility(View.GONE);
+            }
+        }
     }
 
     private void addVideo(Result result) {
@@ -605,7 +616,15 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
     @Override
     public void onItemClick(Func item) {
         if (item.getResId() == R.string.home_vod) {
-            if (mResult.getTypes().isEmpty()) getVideo();
+            // 如果内容未加载，先加载
+            if (mResult.getTypes().isEmpty()) {
+                getVideo();
+            } else {
+                // 内容已加载，模拟点击第一个分类标签
+                if (mResult.getTypes().size() > 0) {
+                    onItemClick(mResult.getTypes().get(0));
+                }
+            }
         } else if (item.getResId() == R.string.home_live) LiveActivity.start(this);
         else if (item.getResId() == R.string.home_keep) KeepActivity.start(this);
         else if (item.getResId() == R.string.home_push) PushActivity.start(this);
@@ -777,6 +796,8 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
         mClock.start();
         if (mWeb != null) mWeb.onResume();
         setFunc();
+        // 根据设置更新分类按钮的可见性
+        updateTypeRecyclerVisibility();
     }
 
     @Override
