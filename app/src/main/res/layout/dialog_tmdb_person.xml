@@ -5,13 +5,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F141A">
+    android:background="#0F141A"
+    android:defaultFocusHighlightEnabled="false"
+    android:stateListAnimator="@null">
 
     <!-- 滚动内容 -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="false">
+        android:defaultFocusHighlightEnabled="false"
+        android:descendantFocusability="afterDescendants"
+        android:fillViewport="false"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:stateListAnimator="@null">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -113,7 +120,8 @@
                     android:layout_marginTop="12dp"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
-                    android:clipToPadding="false" />
+                    android:clipToPadding="false"
+                    android:descendantFocusability="afterDescendants" />
 
             </LinearLayout>
 
@@ -190,6 +198,7 @@
                 android:paddingEnd="20dp"
                 android:paddingBottom="24dp"
                 android:clipToPadding="false"
+                android:descendantFocusability="afterDescendants"
                 android:nestedScrollingEnabled="false"
                 android:visibility="gone"
                 tools:listitem="@layout/item_tmdb_person_work" />

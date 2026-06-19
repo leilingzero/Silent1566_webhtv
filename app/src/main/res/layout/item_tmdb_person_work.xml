@@ -11,8 +11,12 @@
     app:cardBackgroundColor="#1C2530"
     app:cardCornerRadius="8dp"
     app:cardElevation="4dp"
+    android:clickable="true"
+    android:defaultFocusHighlightEnabled="false"
     android:focusable="true"
-    android:foreground="@drawable/selector_tmdb_card">
+    android:focusableInTouchMode="true"
+    android:foreground="@drawable/selector_tmdb_card"
+    android:stateListAnimator="@null">
 
     <LinearLayout
         android:layout_width="match_parent"

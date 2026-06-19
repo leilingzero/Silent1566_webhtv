@@ -6,8 +6,11 @@
     android:layout_marginEnd="12dp"
     android:layout_marginBottom="8dp"
     android:clickable="true"
+    android:defaultFocusHighlightEnabled="false"
     android:focusable="true"
-    android:foreground="@drawable/selector_tmdb_card">
+    android:focusableInTouchMode="true"
+    android:foreground="@drawable/selector_tmdb_card"
+    android:stateListAnimator="@null">
 
     <ImageView
         android:id="@+id/photo"

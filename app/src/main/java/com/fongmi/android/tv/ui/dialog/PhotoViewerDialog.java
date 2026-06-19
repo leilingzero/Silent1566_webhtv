@@ -2,24 +2,36 @@ package com.fongmi.android.tv.ui.dialog;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.res.ColorStateList;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.fongmi.android.tv.R;
+import com.fongmi.android.tv.utils.KeyUtil;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.TmdbImageSaver;
 import com.fongmi.android.tv.utils.Util;
@@ -63,19 +75,24 @@ public class PhotoViewerDialog {
         FrameLayout root = new FrameLayout(activity);
         root.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         root.setBackgroundColor(Color.BLACK);
+        root.setFocusable(Util.isLeanback());
+        root.setFocusableInTouchMode(Util.isLeanback());
 
         // ViewPager2 支持左右滑动
         ViewPager2 viewPager = new ViewPager2(activity);
         viewPager.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         viewPager.setAdapter(new PhotoPagerAdapter(photos));
+        if (photos.size() > 1) viewPager.setOffscreenPageLimit(1);
         viewPager.setCurrentItem(startPosition, false);
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 currentPosition = position;
+                preloadNearby(position);
             }
         });
         root.addView(viewPager);
+        preloadNearby(startPosition);
 
         // 右上角保存按钮 - 始终显示
         FrameLayout saveBtnWrapper = new FrameLayout(activity);
@@ -91,6 +108,8 @@ public class PhotoViewerDialog {
             saveBtnWrapper.setFocusableInTouchMode(true);
             saveBtnWrapper.setClickable(true);
             saveBtnWrapper.setForeground(ContextCompat.getDrawable(activity, R.drawable.selector_tmdb_card));
+            saveBtnWrapper.setStateListAnimator(null);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) saveBtnWrapper.setDefaultFocusHighlightEnabled(false);
         }
 
         MaterialButton saveBtn = new MaterialButton(activity);
@@ -115,6 +134,8 @@ public class PhotoViewerDialog {
         if (Util.isLeanback()) {
             saveBtnWrapper.setOnClickListener(saveAction);
             saveBtn.setClickable(false);
+            saveBtn.setFocusable(false);
+            saveBtn.setFocusableInTouchMode(false);
         } else {
             saveBtn.setOnClickListener(saveAction);
         }
@@ -143,6 +164,17 @@ public class PhotoViewerDialog {
         if (window != null) {
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             window.setBackgroundDrawableResource(android.R.color.black);
+            window.setDimAmount(0f);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) window.getDecorView().setDefaultFocusHighlightEnabled(false);
+        }
+
+        if (Util.isLeanback()) {
+            View.OnKeyListener keyListener = (view, keyCode, event) -> handleTvKey(root, saveBtnWrapper, viewPager, event);
+            dialog.setOnKeyListener((d, keyCode, event) -> handleTvKey(root, saveBtnWrapper, viewPager, event));
+            root.setOnKeyListener(keyListener);
+            viewPager.setOnKeyListener(keyListener);
+            saveBtnWrapper.setOnKeyListener(keyListener);
         }
 
         // 关闭对话框时恢复原始方向
@@ -151,6 +183,41 @@ public class PhotoViewerDialog {
         });
 
         dialog.show();
+        if (Util.isLeanback()) saveBtnWrapper.requestFocus();
+    }
+
+    private boolean handleTvKey(View root, View saveBtnWrapper, ViewPager2 viewPager, KeyEvent event) {
+        if (!Util.isLeanback() || !KeyUtil.isActionDown(event)) return false;
+        if (KeyUtil.isLeftKey(event)) return movePhoto(viewPager, false);
+        if (KeyUtil.isRightKey(event)) return movePhoto(viewPager, true);
+        if (KeyUtil.isUpKey(event)) return saveBtnWrapper.requestFocus();
+        if (KeyUtil.isDownKey(event) && saveBtnWrapper.hasFocus()) return root.requestFocus();
+        return false;
+    }
+
+    private boolean movePhoto(ViewPager2 viewPager, boolean next) {
+        if (photos == null || photos.size() <= 1) return true;
+        int target = currentPosition + (next ? 1 : -1);
+        if (target < 0 || target >= photos.size()) return true;
+        currentPosition = target;
+        viewPager.setCurrentItem(target, true);
+        preloadNearby(target);
+        return true;
+    }
+
+    private void preloadNearby(int position) {
+        preload(position - 1);
+        preload(position + 1);
+    }
+
+    private void preload(int position) {
+        if (photos == null || position < 0 || position >= photos.size()) return;
+        String url = convertToHighRes(photos.get(position));
+        if (TextUtils.isEmpty(url)) return;
+        Glide.with(activity)
+                .load(url)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .preload();
     }
 
     private void toggleOrientation() {
@@ -221,18 +288,46 @@ public class PhotoViewerDialog {
         @NonNull
         @Override
         public PhotoViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            FrameLayout root = new FrameLayout(parent.getContext());
+            root.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            root.setBackgroundColor(Color.BLACK);
+
             ImageView imageView = new ImageView(parent.getContext());
-            imageView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            imageView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
             imageView.setBackgroundColor(Color.BLACK);
-            return new PhotoViewHolder(imageView);
+            root.addView(imageView);
+
+            ProgressBar progress = new ProgressBar(parent.getContext());
+            progress.setIndeterminate(true);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) progress.setIndeterminateTintList(ColorStateList.valueOf(Color.WHITE));
+            FrameLayout.LayoutParams progressParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+            progress.setLayoutParams(progressParams);
+            root.addView(progress);
+
+            return new PhotoViewHolder(root, imageView, progress);
         }
 
         @Override
         public void onBindViewHolder(@NonNull PhotoViewHolder holder, int position) {
+            holder.progress.setVisibility(View.VISIBLE);
+            holder.imageView.setImageDrawable(null);
             Glide.with(holder.imageView.getContext())
                     .load(convertToHighRes(urls.get(position)))
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                            holder.progress.setVisibility(View.GONE);
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                            holder.progress.setVisibility(View.GONE);
+                            return false;
+                        }
+                    })
                     .into(holder.imageView);
         }
 
@@ -243,10 +338,12 @@ public class PhotoViewerDialog {
 
         class PhotoViewHolder extends RecyclerView.ViewHolder {
             ImageView imageView;
+            ProgressBar progress;
 
-            PhotoViewHolder(ImageView view) {
+            PhotoViewHolder(View view, ImageView imageView, ProgressBar progress) {
                 super(view);
-                this.imageView = view;
+                this.imageView = imageView;
+                this.progress = progress;
             }
         }
     }

@@ -2,9 +2,11 @@ package com.fongmi.android.tv.ui.dialog;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.os.Build;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -78,6 +80,7 @@ public class TmdbPersonDialog {
     private static final int PAGE_SIZE_INITIAL = 20;
     private static final int PAGE_SIZE_LOAD_MORE = 12;
     private boolean isLoadingMore = false;
+    private boolean initialFocusDone = false;
 
     public static void show(Activity activity, TmdbPerson person) {
         new TmdbPersonDialog(activity, person).show();
@@ -95,18 +98,26 @@ public class TmdbPersonDialog {
         View view = LayoutInflater.from(activity).inflate(R.layout.dialog_tmdb_person, null);
         dialog.setContentView(view);
 
-        // 全屏设置
+        applyWindowAttrs();
+        initView(view);
+
+        dialog.show();
+        applyWindowAttrs();
+        requestInitialFocus();
+        loadPersonDetail();
+    }
+
+    private void applyWindowAttrs() {
+        if (dialog == null) return;
         Window window = dialog.getWindow();
         if (window != null) {
             window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
             window.setBackgroundDrawableResource(android.R.color.transparent);
             window.setDimAmount(0f);
             window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) window.getDecorView().setDefaultFocusHighlightEnabled(false);
+            window.getDecorView().setStateListAnimator(null);
         }
-
-        initView(view);
-        loadPersonDetail();
-        dialog.show();
     }
 
     private void initView(View view) {
@@ -140,6 +151,7 @@ public class TmdbPersonDialog {
         photoAdapter = new TmdbPersonPhotoAdapter(this::onPhotoClick);
         photosRecycler.setLayoutManager(new LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false));
         photosRecycler.setAdapter(photoAdapter);
+        photosRecycler.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
         // 设置作品列表（双列网格，懒加载）
         workAdapter = new TmdbPersonWorkAdapter(this::onWorkClick);
@@ -147,6 +159,7 @@ public class TmdbPersonDialog {
         worksRecycler.setLayoutManager(gridLayoutManager);
         worksRecycler.setAdapter(workAdapter);
         worksRecycler.setHasFixedSize(false);
+        worksRecycler.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         worksRecycler.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -195,6 +208,7 @@ public class TmdbPersonDialog {
             if (dialog != null && dialog.isShowing()) {
                 photoAdapter.setItems(photos);
                 photosSection.setVisibility(View.VISIBLE);
+                requestInitialFocus();
             }
         });
     }
@@ -314,7 +328,27 @@ public class TmdbPersonDialog {
             workAdapter.setItems(items.subList(0, initialCount));
             worksRecycler.scrollToPosition(0);
             worksRecycler.setVisibility(View.VISIBLE);
+            requestInitialFocus();
         }
+    }
+
+    private void requestInitialFocus() {
+        if (!Util.isLeanback() || initialFocusDone || dialog == null || !dialog.isShowing()) return;
+        if (requestRecyclerFocus(photosRecycler) || requestRecyclerFocus(worksRecycler)) initialFocusDone = true;
+    }
+
+    private boolean requestRecyclerFocus(RecyclerView recyclerView) {
+        if (recyclerView == null || recyclerView.getVisibility() != View.VISIBLE) return false;
+        RecyclerView.Adapter<?> adapter = recyclerView.getAdapter();
+        if (adapter == null || adapter.getItemCount() == 0) return false;
+        RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(0);
+        if (holder != null && holder.itemView.requestFocus()) return true;
+        recyclerView.post(() -> {
+            if (initialFocusDone || dialog == null || !dialog.isShowing()) return;
+            RecyclerView.ViewHolder postedHolder = recyclerView.findViewHolderForAdapterPosition(0);
+            if (postedHolder != null && postedHolder.itemView.requestFocus()) initialFocusDone = true;
+        });
+        return false;
     }
 
     /**
