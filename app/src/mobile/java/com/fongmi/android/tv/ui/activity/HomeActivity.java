@@ -259,6 +259,10 @@ public class HomeActivity extends BaseActivity implements NavigationBarView.OnIt
         return changed;
     }
 
+    private boolean isSettingSubPageVisible() {
+        return mManager.isVisible(2) || mManager.isVisible(3) || mManager.isVisible(4) || mManager.isVisible(5);
+    }
+
     private void refreshWebHomeChromeLayout() {
         if (mChrome != null) mChrome.refreshLayout();
     }
@@ -388,7 +392,7 @@ public class HomeActivity extends BaseActivity implements NavigationBarView.OnIt
         } else if (returnVodFromEnhance && mManager.isVisible(3)) {
             returnVodFromEnhance = false;
             change(0);
-        } else if (mManager.isVisible(2) || mManager.isVisible(3) || mManager.isVisible(4)) {
+        } else if (isSettingSubPageVisible()) {
             change(1);
         } else if (mManager.isVisible(1)) {
             change(0);
