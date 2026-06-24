@@ -523,6 +523,7 @@ public class TmdbPersonActivity extends BaseActivity {
         tint(binding.worksCount, secondary);
         tint(binding.empty, secondary);
         binding.biography.setTextColor(light ? 0xDD12202D : 0xDDEAF2F8);
+        updateFilters();
     }
 
     private void tint(TextView view, int color) {
@@ -530,10 +531,7 @@ public class TmdbPersonActivity extends BaseActivity {
     }
 
     private boolean resolveLightTheme() {
-        int mode = Setting.getTmdbDetailTheme();
-        if (mode == 1) return false;
-        if (mode == 2) return true;
-        return (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) != Configuration.UI_MODE_NIGHT_YES;
+        return Setting.resolveTmdbDetailLightTheme(Setting.getTmdbDetailTheme(), (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES);
     }
 
     private void showPhotoDialog(int position, String url) {

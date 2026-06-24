@@ -9,9 +9,9 @@ import static org.junit.Assert.assertTrue;
 public class TmdbCinemaThemeTest {
 
     @Test
-    public void resolveLight_followsAutoDarkLightThemeModes() {
+    public void resolveLight_usesOnlyLightAndDarkThemeModes() {
         assertTrue(TmdbCinemaTheme.resolveLight(0, false));
-        assertFalse(TmdbCinemaTheme.resolveLight(0, true));
+        assertTrue(TmdbCinemaTheme.resolveLight(0, true));
         assertFalse(TmdbCinemaTheme.resolveLight(1, false));
         assertTrue(TmdbCinemaTheme.resolveLight(2, true));
     }

@@ -30,26 +30,26 @@ public class SettingDetailModeTest {
     }
 
     @Test
-    public void legacyDetailTheme_clampsToOldAutoDarkLightRange() {
-        assertEquals(0, Setting.clampTmdbDetailTheme(-1));
-        assertEquals(0, Setting.clampTmdbDetailTheme(0));
+    public void detailTheme_migratesUnknownAndLegacyAutoToLight() {
+        assertEquals(2, Setting.clampTmdbDetailTheme(-1));
+        assertEquals(2, Setting.clampTmdbDetailTheme(0));
         assertEquals(1, Setting.clampTmdbDetailTheme(1));
         assertEquals(2, Setting.clampTmdbDetailTheme(2));
         assertEquals(2, Setting.clampTmdbDetailTheme(3));
     }
 
     @Test
-    public void legacyDetailTheme_cyclesAutoDarkLight() {
+    public void detailTheme_cyclesOnlyBetweenLightAndDark() {
         assertEquals(1, Setting.nextTmdbDetailTheme(0));
         assertEquals(2, Setting.nextTmdbDetailTheme(1));
-        assertEquals(0, Setting.nextTmdbDetailTheme(2));
-        assertEquals(0, Setting.nextTmdbDetailTheme(9));
+        assertEquals(1, Setting.nextTmdbDetailTheme(2));
+        assertEquals(1, Setting.nextTmdbDetailTheme(9));
     }
 
     @Test
-    public void legacyDetailTheme_resolvesAutoAgainstSystemNightMode() {
+    public void detailTheme_resolvesLegacyAutoAsLightRegardlessOfSystemMode() {
         assertTrue(Setting.resolveTmdbDetailLightTheme(0, false));
-        assertFalse(Setting.resolveTmdbDetailLightTheme(0, true));
+        assertTrue(Setting.resolveTmdbDetailLightTheme(0, true));
         assertFalse(Setting.resolveTmdbDetailLightTheme(1, false));
         assertFalse(Setting.resolveTmdbDetailLightTheme(1, true));
         assertTrue(Setting.resolveTmdbDetailLightTheme(2, false));

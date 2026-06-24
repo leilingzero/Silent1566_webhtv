@@ -302,6 +302,10 @@ public class PlayerManager implements ParseCallback {
         return playerType == PlayerSetting.IJK;
     }
 
+    public boolean useNativeVideoOutput() {
+        return PlayerSetting.useNativeVideoOutput(playerType);
+    }
+
     private String getPlayerText(int type) {
         String[] items = ResUtil.getStringArray(R.array.select_player_kernel);
         return type >= 0 && type < items.length ? items[type] : items[PlayerSetting.EXO];

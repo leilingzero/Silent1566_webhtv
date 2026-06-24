@@ -48,6 +48,14 @@ public class PlayerSetting {
         return Prefers.getInt("render", 0);
     }
 
+    public static int getRender(int player) {
+        return useNativeVideoOutput(player) ? 0 : getRender();
+    }
+
+    public static boolean useNativeVideoOutput(int player) {
+        return player == IJK || player == SYSTEM;
+    }
+
     public static void putRender(int render) {
         Prefers.put("render", render);
     }

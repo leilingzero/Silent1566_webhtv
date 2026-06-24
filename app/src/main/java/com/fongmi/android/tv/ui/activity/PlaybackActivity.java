@@ -278,7 +278,7 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
         if (getExoView().getPlayer() == null) {
             getExoView().setPlayer(player().getPlayer());
             syncShutter();
-            if (player().isIjk()) getExoView().post(this::syncShutter);
+            if (player().useNativeVideoOutput()) getExoView().post(this::syncShutter);
         }
         onSurfaceAttached();
     }
@@ -289,9 +289,9 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
 
     private void syncShutter(boolean restoreExo) {
         if (mService == null) return;
-        boolean ijk = player().isIjk();
+        boolean nativeOutput = player().useNativeVideoOutput();
         View shutter = getExoView().findViewById(androidx.media3.ui.R.id.exo_shutter);
-        if (ijk) {
+        if (nativeOutput) {
             getExoView().setShutterBackgroundColor(Color.TRANSPARENT);
             if (shutter != null) shutter.setVisibility(View.GONE);
         } else if (restoreExo) {
@@ -311,8 +311,7 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
     }
 
     private int getRender() {
-        if (mService != null && player().isIjk()) return 0;
-        return PlayerSetting.getRender();
+        return mService == null ? PlayerSetting.getRender() : PlayerSetting.getRender(player().getPlayerType());
     }
 
     private void releasePlaybackService() {

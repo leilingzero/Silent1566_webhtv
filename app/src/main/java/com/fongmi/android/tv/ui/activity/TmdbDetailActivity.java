@@ -1242,10 +1242,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private int themeModeLabel() {
-        if (isCinemaMode()) return lightTheme ? R.string.detail_theme_light : R.string.detail_theme_dark;
-        if (detailThemeMode == 1) return R.string.detail_theme_dark;
-        if (detailThemeMode == 2) return R.string.detail_theme_light;
-        return R.string.detail_theme_auto;
+        return lightTheme ? R.string.detail_theme_light : R.string.detail_theme_dark;
     }
 
     private void setCard(MaterialCardView card, int background, int stroke) {

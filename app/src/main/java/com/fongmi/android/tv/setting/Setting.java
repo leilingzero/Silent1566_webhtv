@@ -685,7 +685,7 @@ public class Setting {
     }
 
     public static int getTmdbDetailTheme() {
-        return clampTmdbDetailTheme(Prefers.getInt("tmdb_detail_theme", 0));
+        return clampTmdbDetailTheme(Prefers.getInt("tmdb_detail_theme", 2));
     }
 
     public static void putTmdbDetailTheme(int theme) {
@@ -701,18 +701,16 @@ public class Setting {
     }
 
     public static int nextTmdbDetailTheme(int theme) {
-        return (clampTmdbDetailTheme(theme) + 1) % 3;
+        return clampTmdbDetailTheme(theme) == 2 ? 1 : 2;
     }
 
     public static boolean resolveTmdbDetailLightTheme(int theme, boolean systemNight) {
         int value = clampTmdbDetailTheme(theme);
-        if (value == 1) return false;
-        if (value == 2) return true;
-        return !systemNight;
+        return value != 1;
     }
 
     static int clampTmdbDetailTheme(int theme) {
-        return Math.max(0, Math.min(theme, 2));
+        return theme == 1 ? 1 : 2;
     }
 
     public static boolean isHomeHistory() {

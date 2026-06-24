@@ -949,12 +949,14 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mTmdbAutoDialogShown = false;
         if (tmdbMode) {
             hideTmdbHeader();
+            setNativeDetailInfoVisible(false);
             mBinding.quick.setVisibility(View.GONE);
             mBinding.search.setVisibility(View.GONE);
             if (mBinding.videoShadow != null) mBinding.videoShadow.setVisibility(View.GONE);
             mBinding.progressLayout.showProgress();
         } else {
             restoreFlagAndEpisodeFromTmdb();
+            setNativeDetailInfoVisible(true);
             mBinding.search.setVisibility(View.VISIBLE);
             if (mBinding.videoShadow != null) mBinding.videoShadow.setVisibility(View.VISIBLE);
             android.util.Log.d("VideoActivity", "setDetail - 调用 showContent()");
@@ -1008,23 +1010,28 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         // 基于 TMDB 开关和配置是否就绪
         boolean tmdbMode = shouldUseTmdbDetailLayout();
         if (!tmdbMode) {
-            mBinding.name.setVisibility(View.VISIBLE);
-            mBinding.contentLayout.setVisibility(View.VISIBLE);
+            setNativeDetailInfoVisible(true);
             setText(mBinding.director, R.string.detail_director, item.getDirector());
             setText(mBinding.actor, R.string.detail_actor, item.getActor());
             setText(mBinding.remark, 0, item.getRemarks());
             setOther(mBinding.other, item);
             setText(mBinding.content, 0, item.getContent());
         } else {
-            // TMDB 模式下确保隐藏原生内容的各个元素
-            mBinding.name.setVisibility(View.GONE);
-            mBinding.remark.setVisibility(View.GONE);
-            mBinding.other.setVisibility(View.GONE);
-            mBinding.director.setVisibility(View.GONE);
-            mBinding.actor.setVisibility(View.GONE);
-            mBinding.contentLayout.setVisibility(View.GONE);
+            setNativeDetailInfoVisible(false);
         }
         applyFusionNativeTextColors();
+    }
+
+    private void setNativeDetailInfoVisible(boolean visible) {
+        int visibility = visible ? View.VISIBLE : View.GONE;
+        mBinding.name.setVisibility(visibility);
+        mBinding.remark.setVisibility(visibility);
+        mBinding.site.setVisibility(visibility);
+        mBinding.other.setVisibility(visibility);
+        mBinding.director.setVisibility(visibility);
+        mBinding.actor.setVisibility(visibility);
+        mBinding.contentLayout.setVisibility(visibility);
+        mBinding.actionRow.setVisibility(visibility);
     }
 
     private void setText(TextView view, int resId, String text) {
@@ -2596,8 +2603,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             }
         });
 
-        // TMDB 模式下：隐藏原生内容元素（但保持容器可见，因为 TMDB 内容也在里面）
-        mBinding.contentLayout.setVisibility(View.GONE);
+        // TMDB 模式下：隐藏原生详情信息（但保持容器可见，因为 TMDB 内容也在里面）
+        setNativeDetailInfoVisible(false);
         mBinding.quick.setVisibility(View.GONE);
         mBinding.search.setVisibility(View.GONE);
         if (mBinding.videoShadow != null) mBinding.videoShadow.setVisibility(View.GONE);  // 隐藏播放器下方的阴影
@@ -2736,11 +2743,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private String fusionThemeLabel() {
-        int theme = Setting.getTmdbDetailTheme();
-        if (Setting.isTmdbCinemaStyle()) return Setting.resolveTmdbDetailLightTheme(theme, isSystemNight()) ? getString(R.string.detail_theme_light) : getString(R.string.detail_theme_dark);
-        if (theme == 1) return getString(R.string.detail_theme_dark);
-        if (theme == 2) return getString(R.string.detail_theme_light);
-        return getString(R.string.detail_theme_auto);
+        return isFusionLightTheme() ? getString(R.string.detail_theme_light) : getString(R.string.detail_theme_dark);
     }
 
     private boolean isFusionLightTheme() {
@@ -2761,6 +2764,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mTmdbContentLoaded = true;
         hideTmdbHeader();
         restoreFlagAndEpisodeFromTmdb();
+        setNativeDetailInfoVisible(true);
         mBinding.search.setVisibility(View.VISIBLE);
         if (mBinding.videoShadow != null) mBinding.videoShadow.setVisibility(View.VISIBLE);
         setText(item);
@@ -3024,7 +3028,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private View[] getTmdbMovableViews() {
         return new View[]{
-                mBinding.site,
                 mBinding.flagTitleBar,
                 mBinding.flag,
                 mBinding.episodeTitleBar,

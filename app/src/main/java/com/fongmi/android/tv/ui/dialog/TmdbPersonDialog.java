@@ -6,6 +6,7 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -65,6 +67,7 @@ public class TmdbPersonDialog {
     private LinearLayout filterSection;
     private RecyclerView photosRecycler;
     private RecyclerView worksRecycler;
+    private NestedScrollView contentScroll;
     private ChipGroup departmentChips;
     private ChipGroup mediaChips;
 
@@ -115,6 +118,7 @@ public class TmdbPersonDialog {
 
         dialog.show();
         applyWindowAttrs();
+        bringDialogToFront();
         requestInitialFocus();
         loadPersonDetail();
     }
@@ -124,12 +128,21 @@ public class TmdbPersonDialog {
         Window window = dialog.getWindow();
         if (window != null) {
             window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+            window.setGravity(Gravity.CENTER);
             window.setBackgroundDrawableResource(android.R.color.transparent);
             window.setDimAmount(0f);
             window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) window.getDecorView().setDefaultFocusHighlightEnabled(false);
             window.getDecorView().setStateListAnimator(null);
         }
+    }
+
+    private void bringDialogToFront() {
+        if (dialog == null || dialog.getWindow() == null) return;
+        View decor = dialog.getWindow().getDecorView();
+        decor.bringToFront();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) decor.setTranslationZ(1000f);
+        decor.post(decor::bringToFront);
     }
 
     private void initView(View view) {
@@ -143,6 +156,7 @@ public class TmdbPersonDialog {
         filterSection = view.findViewById(R.id.filterSection);
         photosRecycler = view.findViewById(R.id.photosRecycler);
         worksRecycler = view.findViewById(R.id.worksRecycler);
+        contentScroll = view.findViewById(R.id.contentScroll);
         departmentChips = view.findViewById(R.id.departmentChips);
         mediaChips = view.findViewById(R.id.mediaChips);
         View closeBtn = view.findViewById(R.id.closeBtn);
@@ -234,7 +248,7 @@ public class TmdbPersonDialog {
             if (dialog != null && dialog.isShowing()) {
                 photoAdapter.setItems(photos);
                 photosSection.setVisibility(View.VISIBLE);
-                requestInitialFocus();
+                keepTopPositionDuringInitialRender();
             }
         });
     }
@@ -412,26 +426,26 @@ public class TmdbPersonDialog {
         workAdapter.setItems(items.subList(0, initialCount));
         worksRecycler.scrollToPosition(0);
         worksRecycler.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
-        requestInitialFocus();
+        keepTopPositionDuringInitialRender();
     }
 
     private void requestInitialFocus() {
         if (!Util.isLeanback() || initialFocusDone || dialog == null || !dialog.isShowing()) return;
-        if (requestRecyclerFocus(photosRecycler) || requestRecyclerFocus(worksRecycler)) initialFocusDone = true;
+        View panel = dialog.findViewById(R.id.panel);
+        View root = dialog.findViewById(R.id.root);
+        View target = panel != null ? panel : root;
+        if (target == null) return;
+        target.setFocusable(true);
+        target.setFocusableInTouchMode(true);
+        if (target.requestFocus()) initialFocusDone = true;
+        keepTopPositionDuringInitialRender();
     }
 
-    private boolean requestRecyclerFocus(RecyclerView recyclerView) {
-        if (recyclerView == null || recyclerView.getVisibility() != View.VISIBLE) return false;
-        RecyclerView.Adapter<?> adapter = recyclerView.getAdapter();
-        if (adapter == null || adapter.getItemCount() == 0) return false;
-        RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(0);
-        if (holder != null && holder.itemView.requestFocus()) return true;
-        recyclerView.post(() -> {
-            if (initialFocusDone || dialog == null || !dialog.isShowing()) return;
-            RecyclerView.ViewHolder postedHolder = recyclerView.findViewHolderForAdapterPosition(0);
-            if (postedHolder != null && postedHolder.itemView.requestFocus()) initialFocusDone = true;
-        });
-        return false;
+    private void keepTopPositionDuringInitialRender() {
+        if (!Util.isLeanback() || contentScroll == null || dialog == null || !dialog.isShowing()) return;
+        bringDialogToFront();
+        contentScroll.scrollTo(0, 0);
+        contentScroll.post(() -> contentScroll.scrollTo(0, 0));
     }
 
     /**
