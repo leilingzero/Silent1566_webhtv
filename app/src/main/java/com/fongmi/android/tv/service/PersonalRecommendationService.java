@@ -338,7 +338,31 @@ public class PersonalRecommendationService {
             if (!currentSeed) historySeedIndex++;
             seedIndex++;
         }
-        return rankCandidates(relatedCandidates.isEmpty() ? fallbackCandidates : relatedCandidates, maxResults);
+        List<RecommendationCandidate> ranked = rankCandidates(relatedCandidates.isEmpty() ? fallbackCandidates : relatedCandidates, maxResults);
+        enrichDoubanRatings(ranked);
+        return ranked;
+    }
+
+    private void enrichDoubanRatings(List<RecommendationCandidate> candidates) {
+        if (candidates == null || candidates.isEmpty()) return;
+        for (RecommendationCandidate candidate : candidates) {
+            if (candidate == null || candidate.item == null || candidate.item.getRating() > 0) continue;
+            String doubanId = doubanIdFromKey(candidate.key);
+            if (isBlank(doubanId)) continue;
+            DoubanRating rating = fetchDoubanAbstractRating(doubanId);
+            if (rating.isEmpty()) continue;
+            candidate.item = withRating(candidate.item, rating.getRating());
+        }
+    }
+
+    private static String doubanIdFromKey(String key) {
+        String value = Objects.toString(key, "");
+        return value.startsWith("douban:") ? value.substring("douban:".length()) : "";
+    }
+
+    static TmdbItem withRating(TmdbItem item, double rating) {
+        if (item == null || rating <= 0 || item.getRating() > 0) return item;
+        return new TmdbItem(item.getTmdbId(), item.getMediaType(), item.getTitle(), item.getSubtitle(), item.getOverview(), item.getPosterUrl(), item.getBackdropUrl(), item.getCredit(), rating, item.getOriginalLanguage(), item.getOriginCountry(), item.getGenreIds(), item.getDepartment());
     }
 
     static RecommendationPage pageItems(List<RecommendationCandidate> ranked, int offset, int pageSize, String historyFingerprint, boolean hasMoreSeeds) {
@@ -487,13 +511,18 @@ public class PersonalRecommendationService {
 
     private DoubanRating fetchDoubanAbstractRating(DoubanSubject subject) {
         if (subject == null || isBlank(subject.id)) return DoubanRating.empty();
-        HttpUrl base = HttpUrl.parse(DOUBAN_ABSTRACT_URL);
-        if (base == null) return DoubanRating.empty();
-        HttpUrl url = base.newBuilder().addQueryParameter("subject_id", subject.id).build();
-        String body = requestDouban(url, DOUBAN_REFERER, "abstract");
-        DoubanRating rating = parseDoubanSubjectAbstract(body);
+        DoubanRating rating = fetchDoubanAbstractRating(subject.id);
         if (!rating.isEmpty()) return rating;
         return DoubanRating.from(subject);
+    }
+
+    private DoubanRating fetchDoubanAbstractRating(String subjectId) {
+        if (isBlank(subjectId)) return DoubanRating.empty();
+        HttpUrl base = HttpUrl.parse(DOUBAN_ABSTRACT_URL);
+        if (base == null) return DoubanRating.empty();
+        HttpUrl url = base.newBuilder().addQueryParameter("subject_id", subjectId).build();
+        String body = requestDouban(url, DOUBAN_REFERER, "abstract");
+        return parseDoubanSubjectAbstract(body);
     }
 
     private List<DoubanSubject> fetchDoubanRelated(DoubanSubject subject) {

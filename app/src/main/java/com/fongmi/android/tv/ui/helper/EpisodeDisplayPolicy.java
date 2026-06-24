@@ -28,4 +28,8 @@ public final class EpisodeDisplayPolicy {
     public static boolean shouldShowTmdbEpisodeChrome(boolean tmdbSourceEnabled, boolean waitingForTmdbEpisodes, List<Episode> items) {
         return tmdbSourceEnabled && (hasTmdbEpisodeData(items) || waitingForTmdbEpisodes);
     }
+
+    public static boolean shouldShowEpisodeGroup(int groupCount, boolean tmdbDetailLayout) {
+        return groupCount > 1 && !tmdbDetailLayout;
+    }
 }

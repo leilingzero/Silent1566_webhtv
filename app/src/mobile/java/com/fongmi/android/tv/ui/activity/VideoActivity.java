@@ -1241,9 +1241,15 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.more.setVisibility(View.GONE);
         List<EpisodeGroupAdapter.Group> groups = EpisodeGroupAdapter.build(size, getSelectedEpisodePosition(items), mHistory != null && mHistory.isRevSort());
         mEpisodeGroupAdapter.addAll(groups);
-        mBinding.episodeGroup.setVisibility(groups.size() > 1 ? View.VISIBLE : View.GONE);
+        updateEpisodeGroupVisibility();
         setEpisodeItems(items);
         mBinding.episode.post(this::updateEpisodeViewportHeight);
+    }
+
+    private void updateEpisodeGroupVisibility() {
+        if (mEpisodeGroupAdapter == null) return;
+        boolean visible = EpisodeDisplayPolicy.shouldShowEpisodeGroup(mEpisodeGroupAdapter.getItemCount(), shouldUseTmdbDetailLayout());
+        mBinding.episodeGroup.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
     private void syncEpisodeGroupByScroll() {
@@ -2795,6 +2801,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mTmdbContentLoaded = true;
         hideTmdbHeader();
         restoreFlagAndEpisodeFromTmdb();
+        updateEpisodeGroupVisibility();
         setNativeDetailInfoVisible(true);
         mBinding.search.setVisibility(View.VISIBLE);
         if (mBinding.videoShadow != null) mBinding.videoShadow.setVisibility(View.VISIBLE);
@@ -3031,6 +3038,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             playbackControls.addView(view);
         }
         mTmdbControlsMoved = true;
+        updateEpisodeGroupVisibility();
     }
 
     private void restoreFlagAndEpisodeFromTmdb() {
@@ -3042,6 +3050,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             item.parent.addView(item.view, Math.min(item.index, item.parent.getChildCount()), item.layoutParams);
         }
         mTmdbControlsMoved = false;
+        updateEpisodeGroupVisibility();
     }
 
     private void setTmdbFlagStyle(boolean enabled) {
