@@ -121,6 +121,18 @@ public class PersonalRecommendationServiceTest {
     }
 
     @Test
+    public void withRating_addsFetchedDoubanRatingToRecommendationItem() {
+        TmdbItem item = new TmdbItem(-35316582, "tv", "折腰", "剧集 · 2025", "", "poster", "", "", 0.0);
+
+        TmdbItem rated = PersonalRecommendationService.withRating(item, 6.7);
+
+        assertEquals("折腰", rated.getTitle());
+        assertEquals("剧集 · 2025", rated.getSubtitle());
+        assertEquals("poster", rated.getPosterUrl());
+        assertEquals(6.7, rated.getRating(), 0.01);
+    }
+
+    @Test
     public void rankCandidates_sortsByScoreAndBoostsDuplicateSignals() {
         List<PersonalRecommendationService.RecommendationCandidate> candidates = List.of(
                 new PersonalRecommendationService.RecommendationCandidate(null, "movie:1", "low", 70.0, 0),

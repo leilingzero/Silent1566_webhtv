@@ -40,6 +40,13 @@ public class EpisodeDisplayPolicyTest {
         assertTrue(EpisodeDisplayPolicy.shouldShowTmdbEpisodeChrome(true, false, Arrays.asList(nativeEpisode(), tmdbEpisode())));
     }
 
+    @Test
+    public void episodeGroup_hidesInTmdbDetailLayout() {
+        assertTrue(EpisodeDisplayPolicy.shouldShowEpisodeGroup(2, false));
+        assertFalse(EpisodeDisplayPolicy.shouldShowEpisodeGroup(2, true));
+        assertFalse(EpisodeDisplayPolicy.shouldShowEpisodeGroup(1, false));
+    }
+
     private static Episode nativeEpisode() {
         return Episode.create("第1集", "http://example.test/1");
     }
