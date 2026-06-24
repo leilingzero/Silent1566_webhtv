@@ -129,6 +129,26 @@
                 android:clipToPadding="false"
                 android:visibility="gone" />
 
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/guestsLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/detail_episode_guests"
+                android:textColor="@color/white"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <androidx.leanback.widget.HorizontalGridView
+                android:id="@+id/guestsGrid"
+                android:layout_width="match_parent"
+                android:layout_height="154dp"
+                android:layout_marginTop="12dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:visibility="gone" />
+
         </LinearLayout>
 
     </ScrollView>

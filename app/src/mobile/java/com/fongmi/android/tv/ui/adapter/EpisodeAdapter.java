@@ -30,7 +30,7 @@ public class EpisodeAdapter extends RecyclerView.Adapter<BaseEpisodeHolder> {
 
     private final OnClickListener listener;
     private final List<Episode> mItems;
-    private final int viewType;
+    private int viewType;
     private boolean useTmdbCard;
 
     public EpisodeAdapter(OnClickListener listener, int viewType) {
@@ -57,6 +57,12 @@ public class EpisodeAdapter extends RecyclerView.Adapter<BaseEpisodeHolder> {
     public void setUseTmdbCard(boolean useTmdbCard) {
         if (this.useTmdbCard == useTmdbCard) return;
         this.useTmdbCard = useTmdbCard;
+        notifyDataSetChanged();
+    }
+
+    public void setViewType(int viewType) {
+        if (this.viewType == viewType) return;
+        this.viewType = viewType;
         notifyDataSetChanged();
     }
 

@@ -12,11 +12,14 @@ import androidx.fragment.app.FragmentActivity;
 import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.bean.Episode;
+import com.fongmi.android.tv.bean.Site;
 import com.fongmi.android.tv.bean.TmdbConfig;
 import com.fongmi.android.tv.bean.TmdbEpisode;
+import com.fongmi.android.tv.bean.TmdbPerson;
 import com.fongmi.android.tv.service.TmdbService;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.ui.adapter.EpisodePhotoAdapter;
+import com.fongmi.android.tv.ui.adapter.TmdbPersonAdapter;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.JsonObject;
@@ -29,6 +32,10 @@ import java.util.List;
 public class EpisodeDetailDialog {
 
     public static void show(FragmentActivity activity, Episode episode) {
+        show(activity, episode, null);
+    }
+
+    public static void show(FragmentActivity activity, Episode episode, Site site) {
         TmdbEpisode tmdbEpisode = episode.getTmdbEpisode();
         if (tmdbEpisode == null) {
             // 没有TMDB数据，显示简单信息
@@ -46,6 +53,8 @@ public class EpisodeDetailDialog {
         TextView overview = view.findViewById(R.id.overview);
         TextView photosLabel = view.findViewById(R.id.photosLabel);
         androidx.leanback.widget.HorizontalGridView photosGrid = view.findViewById(R.id.photosGrid);
+        TextView guestsLabel = view.findViewById(R.id.guestsLabel);
+        androidx.leanback.widget.HorizontalGridView guestsGrid = view.findViewById(R.id.guestsGrid);
 
         // 加载剧照 - 使用原图
         if (!tmdbEpisode.getStillUrl().isEmpty()) {
@@ -98,9 +107,11 @@ public class EpisodeDetailDialog {
         // 初始隐藏本集图片，异步加载
         photosLabel.setVisibility(View.GONE);
         photosGrid.setVisibility(View.GONE);
+        guestsLabel.setVisibility(View.GONE);
+        guestsGrid.setVisibility(View.GONE);
 
-        // 异步加载本集图片
-        loadEpisodePhotos(activity, tmdbEpisode, photosLabel, photosGrid);
+        // 异步加载本集图片与客串演员
+        loadEpisodeMedia(activity, tmdbEpisode, site, photosLabel, photosGrid, guestsLabel, guestsGrid);
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(activity)
                 .setView(view);
@@ -127,8 +138,9 @@ public class EpisodeDetailDialog {
                 .show();
     }
 
-    private static void loadEpisodePhotos(FragmentActivity activity, TmdbEpisode tmdbEpisode,
-                                         TextView photosLabel, androidx.leanback.widget.HorizontalGridView photosGrid) {
+    private static void loadEpisodeMedia(FragmentActivity activity, TmdbEpisode tmdbEpisode, Site site,
+                                         TextView photosLabel, androidx.leanback.widget.HorizontalGridView photosGrid,
+                                         TextView guestsLabel, androidx.leanback.widget.HorizontalGridView guestsGrid) {
         // 只有有tmdbId才能加载图片
         if (tmdbEpisode.getTmdbId() == 0) {
             android.util.Log.d("EpisodeDetail", "跳过图片加载: tmdbId为0");
@@ -156,19 +168,34 @@ public class EpisodeDetailDialog {
                 android.util.Log.d("EpisodeDetail", "TMDB API返回成功");
 
                 List<String> photos = service.episodePhotos(episodeJson, config);
+                List<TmdbPerson> guests = service.episodeGuests(episodeJson, config);
 
                 android.util.Log.d("EpisodeDetail", "图片数量: " + (photos != null ? photos.size() : 0));
+                android.util.Log.d("EpisodeDetail", "客串演员数量: " + (guests != null ? guests.size() : 0));
 
-                if (photos != null && !photos.isEmpty()) {
+                if ((photos != null && !photos.isEmpty()) || (guests != null && !guests.isEmpty())) {
                     activity.runOnUiThread(() -> {
-                        photosLabel.setVisibility(View.VISIBLE);
-                        photosGrid.setVisibility(View.VISIBLE);
-                        photosGrid.setHorizontalSpacing(ResUtil.dp2px(12));
-                        photosGrid.setRowHeight(ResUtil.dp2px(124));
+                        if (photos != null && !photos.isEmpty()) {
+                            photosLabel.setVisibility(View.VISIBLE);
+                            photosGrid.setVisibility(View.VISIBLE);
+                            photosGrid.setHorizontalSpacing(ResUtil.dp2px(12));
+                            photosGrid.setRowHeight(ResUtil.dp2px(124));
 
-                        EpisodePhotoAdapter photoAdapter = new EpisodePhotoAdapter(photos,
-                                (url, position) -> PhotoViewerDialog.show(activity, photos, position, null));
-                        photosGrid.setAdapter(photoAdapter);
+                            EpisodePhotoAdapter photoAdapter = new EpisodePhotoAdapter(photos,
+                                    (url, position) -> PhotoViewerDialog.show(activity, photos, position, null));
+                            photosGrid.setAdapter(photoAdapter);
+                        }
+
+                        if (guests != null && !guests.isEmpty()) {
+                            guestsLabel.setVisibility(View.VISIBLE);
+                            guestsGrid.setVisibility(View.VISIBLE);
+                            guestsGrid.setHorizontalSpacing(ResUtil.dp2px(12));
+                            guestsGrid.setRowHeight(ResUtil.dp2px(154));
+
+                            TmdbPersonAdapter guestAdapter = new TmdbPersonAdapter(person -> TmdbPersonDialog.show(activity, person, site));
+                            guestAdapter.setItems(guests);
+                            guestsGrid.setAdapter(guestAdapter);
+                        }
 
                         android.util.Log.d("EpisodeDetail", "图片显示成功");
                     });

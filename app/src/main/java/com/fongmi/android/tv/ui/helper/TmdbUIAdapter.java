@@ -15,7 +15,9 @@ import com.fongmi.android.tv.event.RefreshEvent;
 import com.fongmi.android.tv.service.PersonalRecommendationService;
 import com.fongmi.android.tv.service.TmdbService;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Task;
+import com.fongmi.android.tv.utils.Util;
 import com.github.catvod.crawler.SpiderDebug;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -550,7 +552,11 @@ public class TmdbUIAdapter {
      */
     public List<String> getPhotos() {
         if (tmdbDetail == null) return new ArrayList<>();
-        return tmdbService.photos(tmdbDetail, tmdbConfig);
+        return tmdbService.photos(tmdbDetail, tmdbConfig, preferLandscapeBackground());
+    }
+
+    private boolean preferLandscapeBackground() {
+        return !Util.isMobile() || ResUtil.isPad() || ResUtil.getScreenWidth(activity) >= ResUtil.getScreenHeight(activity);
     }
 
     /**

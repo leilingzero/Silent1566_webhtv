@@ -1223,7 +1223,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     private void onEpisodeLongClick(Episode item) {
-        com.fongmi.android.tv.ui.dialog.EpisodeDetailDialog.show(this, item);
+        com.fongmi.android.tv.ui.dialog.EpisodeDetailDialog.show(this, item, getSite());
     }
 
     private void selectEpisode(Episode item, boolean scrollToEpisode) {

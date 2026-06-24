@@ -67,8 +67,10 @@ import com.fongmi.android.tv.databinding.ActivityTmdbDetailBinding;
 import com.fongmi.android.tv.databinding.DialogTmdbEpisodeBinding;
 import com.fongmi.android.tv.db.AppDatabase;
 import com.fongmi.android.tv.event.RefreshEvent;
+import com.fongmi.android.tv.player.IntroSkipPlayback;
 import com.fongmi.android.tv.player.PlayerHelper;
 import com.fongmi.android.tv.service.PersonalRecommendationService;
+import com.fongmi.android.tv.service.IntroSkipService;
 import com.fongmi.android.tv.service.PlaybackService;
 import com.fongmi.android.tv.service.TmdbService;
 import com.fongmi.android.tv.setting.DanmakuSetting;
@@ -90,6 +92,7 @@ import com.fongmi.android.tv.ui.dialog.SubtitleDialog;
 import com.fongmi.android.tv.ui.dialog.TitleDialog;
 import com.fongmi.android.tv.ui.dialog.TmdbSearchDialog;
 import com.fongmi.android.tv.ui.dialog.TrackDialog;
+import com.fongmi.android.tv.ui.helper.DetailThemeVisibility;
 import com.fongmi.android.tv.ui.helper.TmdbRecommendationRows;
 import com.fongmi.android.tv.utils.BatteryUtil;
 import com.fongmi.android.tv.utils.Formatters;
@@ -101,6 +104,7 @@ import com.fongmi.android.tv.utils.PiP;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Task;
 import com.fongmi.android.tv.utils.TmdbEpisodeSorter;
+import com.fongmi.android.tv.utils.TmdbImageSelector;
 import com.fongmi.android.tv.utils.TmdbImageSaver;
 import com.fongmi.android.tv.utils.Traffic;
 import com.fongmi.android.tv.utils.Util;
@@ -120,6 +124,7 @@ import com.github.catvod.crawler.SpiderDebug;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -161,6 +166,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private static final Pattern SOURCE_SEASON = Pattern.compile("(?i)(?:第\\s*([零〇一二三四五六七八九十两0-9]+)\\s*[季部]|season\\s*([0-9]{1,2})|s([0-9]{1,2})(?:[-._\\s]*e[0-9]{1,3})?)");
 
     private final TmdbService tmdbService = new TmdbService();
+    private final IntroSkipPlayback introSkipPlayback = new IntroSkipPlayback();
     private final List<TmdbPerson> detailCastItems = new ArrayList<>();
     private final List<TmdbPerson> castItems = new ArrayList<>();
     private final List<TmdbPerson> creatorItems = new ArrayList<>();
@@ -256,6 +262,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private int backdropSlideGeneration;
     private int backdropSlideIndex;
     private boolean episodeGridMode;
+    private boolean inlineEpisodeGridMode = true;
     private boolean episodeReverse;
     private boolean scrollEpisodeStartOnce;
     private boolean tmdbMediaLoading;
@@ -476,9 +483,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.keepTop.setVisibility(View.GONE);
         binding.rematchTop.setVisibility(View.GONE);
         binding.headerBar.setVisibility(Util.isMobile() ? View.VISIBLE : View.GONE);
-        binding.themeModeTop.setVisibility(Util.isMobile() ? View.VISIBLE : View.GONE);
-        binding.themeMode.setVisibility(Util.isMobile() ? View.GONE : View.VISIBLE);
-        binding.themeModeDetail.setVisibility(Util.isMobile() ? View.GONE : View.VISIBLE);
+        updateDetailThemeButtonVisibility();
         binding.fusionActions.setVisibility(isFusionMode() ? View.VISIBLE : View.GONE);
         binding.detailActions.setVisibility(isFusionMode() ? View.GONE : View.VISIBLE);
         applyDetailTemplate();
@@ -765,6 +770,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private boolean onInlineTouch(View view, MotionEvent event) {
+        if (!inlineStarted || !isInlinePlayerMode() || service() == null || player() == null || player().isEmpty()) return false;
         if (inlineGestureDetector != null) inlineGestureDetector.onTouchEvent(event);
         return true;
     }
@@ -937,8 +943,11 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         lightTheme = resolveLightTheme();
         ThemeColors colors = lightTheme ? ThemeColors.light() : ThemeColors.dark();
         if (isCinemaMode()) colors = ThemeColors.cinema();
-        binding.root.setBackgroundColor(colors.background);
-        binding.hero.setBackgroundColor(colors.background);
+        int backdropBackground = backdropFallbackBackground(colors);
+        binding.root.setBackgroundColor(backdropBackground);
+        binding.hero.setBackgroundColor(backdropBackground);
+        binding.backdropFill.setBackgroundColor(backdropBackground);
+        binding.backdrop.setBackgroundColor(backdropBackground);
         binding.backdropFill.setAlpha(backdropSlideAlpha());
         binding.backdrop.setAlpha(backdropSlideAlpha());
         binding.backdropShade.setBackground(isCinemaMode() ? cinemaBackdropShade() : colorDrawable(colors.backdropShade));
@@ -972,6 +981,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.themeModeTop.setText(themeModeLabel());
         binding.themeMode.setText(themeModeLabel());
         binding.themeModeDetail.setText(themeModeLabel());
+        updateDetailThemeButtonVisibility();
         tintInlineGestureOverlay();
         if (isInlinePlayerMode()) {
             binding.playerError.setTextColor(0xFFFFFFFF);
@@ -984,6 +994,17 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             episodeAdapter.setActiveStrokeColor(colors.accent);
         }
         if (episodePhotoAdapter != null) episodePhotoAdapter.setLight(lightTheme);
+    }
+
+    private void updateDetailThemeButtonVisibility() {
+        if (binding == null) return;
+        boolean mobile = Util.isMobile();
+        boolean pictureInPicture = isInPictureInPictureMode();
+        boolean showMobileButton = DetailThemeVisibility.showMobileThemeButton(mobile, inlineFullscreen, inlinePiPLayout, pictureInPicture);
+        boolean showLargeScreenButton = DetailThemeVisibility.showLargeScreenThemeButton(mobile, inlineFullscreen, inlinePiPLayout, pictureInPicture);
+        binding.themeModeTop.setVisibility(showMobileButton ? View.VISIBLE : View.GONE);
+        binding.themeMode.setVisibility(showLargeScreenButton ? View.VISIBLE : View.GONE);
+        binding.themeModeDetail.setVisibility(showLargeScreenButton ? View.VISIBLE : View.GONE);
     }
 
     private void applyTemplateCardChrome(ThemeColors colors) {
@@ -1228,6 +1249,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private void setButton(MaterialButton button, int background, int stroke, int text) {
         button.setBackgroundTintList(ColorStateList.valueOf(background));
         button.setTextColor(text);
+        button.setIconTint(ColorStateList.valueOf(text));
         button.setOnFocusChangeListener(null);
         applyButtonFocus(button, stroke, button.hasFocus());
         button.setOnFocusChangeListener((view, focused) -> applyButtonFocus(button, stroke, focused));
@@ -1456,7 +1478,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             } catch (Throwable ignored) {
             }
             try {
-                photos = tmdbService.photos(bundle.detail(), tmdbConfig);
+                photos = tmdbService.photos(bundle.detail(), tmdbConfig, preferLandscapeBackground());
             } catch (Throwable ignored) {
             }
             try {
@@ -1693,11 +1715,20 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         bindBackdrop();
         bindHeader();
         bindMeta();
+        bindRatings();
         bindOverview();
         bindSource();
         bindFlags();
         bindTmdbSection();
         updateKeepState();
+        requestDetailPlayFocus();
+    }
+
+    private void requestDetailPlayFocus() {
+        if (Util.isMobile() || isInlinePlayerMode() || binding.play.getVisibility() != View.VISIBLE) return;
+        binding.play.post(() -> {
+            if (!isFinishing() && binding != null && binding.play.getVisibility() == View.VISIBLE && !isInlinePlayerMode()) binding.play.requestFocus();
+        });
     }
 
     private void bindInitialArtwork() {
@@ -1732,9 +1763,20 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         backdropSlideVisibleView = binding.backdropFill;
         binding.backdropFill.setVisibility(View.VISIBLE);
         binding.backdropFill.setAlpha(backdropSlideAlpha());
+        binding.backdropFill.setScaleType(backdropScaleType());
         binding.backdrop.setVisibility(View.INVISIBLE);
         ImgUtil.clear(binding.backdrop);
-        ImgUtil.load(title, image, binding.backdropFill);
+        loadBackdropImage(title, image, binding.backdropFill);
+    }
+
+    private void loadBackdropImage(String title, String image, ImageView target) {
+        try {
+            com.bumptech.glide.RequestBuilder<Drawable> request = Glide.with(target).load(ImgUtil.getUrl(image));
+            request = shouldCropBackdrop() ? request.centerCrop() : request.fitCenter();
+            request.into(target);
+        } catch (Throwable e) {
+            ImgUtil.load(title, image, target);
+        }
     }
 
     private void bindBackdropSlideSource(String title, String image) {
@@ -1796,10 +1838,9 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         backdropSlideLoading = true;
         backdropSlideLoadingView = targetView;
         try {
-            Glide.with(this)
-                    .load(model)
-                    .centerCrop()
-                    .listener(new RequestListener<Drawable>() {
+            com.bumptech.glide.RequestBuilder<Drawable> request = Glide.with(this).load(model);
+            request = shouldCropBackdrop() ? request.centerCrop() : request.fitCenter();
+            request.listener(new RequestListener<Drawable>() {
                         @Override
                         public boolean onLoadFailed(@Nullable GlideException e, Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
                             targetView.post(() -> onBackdropSlideFailed(generation, next, url));
@@ -1821,8 +1862,12 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private void prepareBackdropSlideTarget(ImageView targetView) {
         targetView.setVisibility(View.INVISIBLE);
         targetView.setAlpha(backdropSlideAlpha());
-        targetView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        targetView.setScaleType(backdropScaleType());
         ImgUtil.clear(targetView);
+    }
+
+    private ImageView.ScaleType backdropScaleType() {
+        return shouldCropBackdrop() ? ImageView.ScaleType.CENTER_CROP : ImageView.ScaleType.FIT_CENTER;
     }
 
     private void onBackdropSlideReady(int generation, int index, String url, ImageView targetView) {
@@ -1896,11 +1941,27 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private String tmdbBackdropUrl() {
+        if (matchedTmdbDetail != null) {
+            List<String> backgrounds = TmdbImageSelector.backgrounds(matchedTmdbDetail, tmdbConfig.getImageBase(), tmdbConfig.getBackdropBase(), preferLandscapeBackground(), 1);
+            if (!backgrounds.isEmpty()) return backgrounds.get(0);
+        }
         String backdrop = matchedTmdbItem != null ? matchedTmdbItem.getBackdropUrl() : "";
         if (TextUtils.isEmpty(backdrop) && matchedTmdbDetail != null) {
             backdrop = tmdbService.image(tmdbConfig.getBackdropBase(), string(matchedTmdbDetail, "backdrop_path"));
         }
-        return backdrop;
+        return TmdbImageSelector.originalUrl(backdrop);
+    }
+
+    private boolean preferLandscapeBackground() {
+        return !Util.isMobile() || ResUtil.isPad() || ResUtil.getScreenWidth(this) >= ResUtil.getScreenHeight(this);
+    }
+
+    private boolean shouldCropBackdrop() {
+        return true;
+    }
+
+    private int backdropFallbackBackground(ThemeColors colors) {
+        return isPlayerMode() ? 0xFF0F141A : colors.background;
     }
 
     private String episodeFallbackStillUrl() {
@@ -1930,6 +1991,135 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         String rating = ratingLabel();
         if (!TextUtils.isEmpty(rating)) addMetaChip(rating);
         addMetaChip(externalIdLabel());
+    }
+
+    private void bindRatings() {
+        String key = ratingDisplayKey();
+        binding.ratingsContainer.setTag(key);
+        binding.ratingsContainer.removeAllViews();
+        binding.ratingsContainer.setVisibility(View.GONE);
+        String tmdb = tmdbRatingValue();
+        if (!TextUtils.isEmpty(tmdb)) addRatingChip(key, "TMDB", tmdb + "/10", 0xFF21D07A);
+        fetchDoubanRating(key);
+        fetchOmdbRating(key);
+    }
+
+    private void addRatingChip(String key, String platform, String value, int color) {
+        if (TextUtils.isEmpty(platform) || TextUtils.isEmpty(value)) return;
+        if (!(binding.ratingsContainer.getTag() instanceof String) || !key.equals(binding.ratingsContainer.getTag())) return;
+        TextView existing = findRatingChip(platform);
+        if (existing != null) {
+            existing.setText(platform + "  " + value);
+            existing.setTextColor(color);
+            return;
+        }
+        TextView chip = new TextView(this);
+        chip.setTag(platform);
+        chip.setText(platform + "  " + value);
+        chip.setTextColor(color);
+        chip.setTextSize(12f);
+        chip.setTypeface(null, android.graphics.Typeface.BOLD);
+        chip.setIncludeFontPadding(false);
+        chip.setSingleLine(true);
+        chip.setGravity(Gravity.CENTER);
+        chip.setPadding(ResUtil.dp2px(10), ResUtil.dp2px(7), ResUtil.dp2px(10), ResUtil.dp2px(7));
+        ThemeColors colors = lightTheme ? ThemeColors.light() : ThemeColors.dark();
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(isCinemaMode() ? 0x40000000 : colors.chip);
+        background.setCornerRadius(ResUtil.dp2px(8));
+        background.setStroke(ResUtil.dp2px(1), colors.line);
+        chip.setBackground(background);
+        FlexboxLayout.LayoutParams params = new FlexboxLayout.LayoutParams(FlexboxLayout.LayoutParams.WRAP_CONTENT, FlexboxLayout.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, 0, ResUtil.dp2px(8), ResUtil.dp2px(8));
+        chip.setLayoutParams(params);
+        binding.ratingsContainer.addView(chip);
+        binding.ratingsContainer.setVisibility(View.VISIBLE);
+    }
+
+    private TextView findRatingChip(String platform) {
+        for (int i = 0; i < binding.ratingsContainer.getChildCount(); i++) {
+            View child = binding.ratingsContainer.getChildAt(i);
+            if (child instanceof TextView text && platform.equals(child.getTag())) return text;
+        }
+        return null;
+    }
+
+    private void fetchDoubanRating(String key) {
+        String title = ratingTitle();
+        if (TextUtils.isEmpty(title)) return;
+        String mediaType = matchedTmdbItem == null ? "" : matchedTmdbItem.getMediaType();
+        int year = ratingYear();
+        Task.execute(() -> {
+            try {
+                PersonalRecommendationService.DoubanRating rating = new PersonalRecommendationService().loadDoubanRating(title, mediaType, year);
+                if (rating == null || rating.isEmpty()) return;
+                String value = String.format(Locale.US, "%.1f/10", rating.getRating());
+                runOnAliveUi(() -> addRatingChip(key, "豆瓣", value, 0xFF00B51D));
+            } catch (Throwable ignored) {
+            }
+        });
+    }
+
+    private void fetchOmdbRating(String key) {
+        String imdb = string(object(matchedTmdbDetail, "external_ids"), "imdb_id");
+        String omdbApiKey = tmdbConfig == null ? "" : tmdbConfig.getOmdbApiKey();
+        if (TextUtils.isEmpty(imdb) || TextUtils.isEmpty(omdbApiKey)) return;
+        Task.execute(() -> {
+            try {
+                String url = "https://www.omdbapi.com/?i=" + imdb + "&apikey=" + omdbApiKey;
+                okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(8, TimeUnit.SECONDS)
+                        .readTimeout(8, TimeUnit.SECONDS)
+                        .build();
+                okhttp3.Request request = new okhttp3.Request.Builder().url(url).build();
+                try (okhttp3.Response response = client.newCall(request).execute()) {
+                    if (!response.isSuccessful() || response.body() == null) return;
+                    JsonObject body = JsonParser.parseString(response.body().string()).getAsJsonObject();
+                    if ("False".equalsIgnoreCase(string(body, "Response"))) return;
+                    runOnAliveUi(() -> addOmdbRatingChips(key, body));
+                }
+            } catch (Throwable ignored) {
+            }
+        });
+    }
+
+    private void addOmdbRatingChips(String key, JsonObject body) {
+        String imdbRating = string(body, "imdbRating");
+        if (!TextUtils.isEmpty(imdbRating) && !"N/A".equalsIgnoreCase(imdbRating)) addRatingChip(key, "IMDB", imdbRating + "/10", 0xFFF5C518);
+        for (JsonElement element : array(body, "Ratings")) {
+            if (!element.isJsonObject()) continue;
+            JsonObject rating = element.getAsJsonObject();
+            String source = string(rating, "Source");
+            String value = string(rating, "Value");
+            if (TextUtils.isEmpty(value) || "N/A".equalsIgnoreCase(value)) continue;
+            if ("Rotten Tomatoes".equals(source)) addRatingChip(key, "烂番茄", value, 0xFFFA320A);
+            else if ("Metacritic".equals(source)) addRatingChip(key, "Metacritic", value, 0xFFFFCC33);
+        }
+    }
+
+    private String ratingDisplayKey() {
+        int tmdbId = matchedTmdbItem == null ? 0 : matchedTmdbItem.getTmdbId();
+        return tmdbId + "|" + ratingTitle() + "|" + ratingYear();
+    }
+
+    private String tmdbRatingValue() {
+        if (matchedTmdbDetail == null || !matchedTmdbDetail.has("vote_average") || matchedTmdbDetail.get("vote_average").isJsonNull()) return "";
+        double value = matchedTmdbDetail.get("vote_average").getAsDouble();
+        return value <= 0 ? "" : String.format(Locale.US, "%.1f", value);
+    }
+
+    private String ratingTitle() {
+        return coalesce(matchedTmdbItem == null ? "" : matchedTmdbItem.getTitle(), vod == null ? "" : vod.getName(), getNameText());
+    }
+
+    private int ratingYear() {
+        String year = yearLabel();
+        if (TextUtils.isEmpty(year) || year.length() < 4) return 0;
+        try {
+            return Integer.parseInt(year.substring(0, 4));
+        } catch (Throwable e) {
+            return 0;
+        }
     }
 
     private void bindOverview() {
@@ -2079,7 +2269,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         List<Episode> displayEpisodes = new ArrayList<>(visibleEpisodes);
         if (episodeReverse) Collections.reverse(displayEpisodes);
         binding.episodeReverse.setText(episodeReverse ? R.string.detail_episode_forward : R.string.detail_episode_reverse);
-        binding.episodeViewMode.setText(episodeGridMode ? R.string.detail_episode_view_list : R.string.detail_episode_view_grid);
+        updateEpisodeViewModeButton();
         episodeAdapter.setMode(episodeGridMode ? TmdbEpisodeAdapter.Mode.GRID : TmdbEpisodeAdapter.Mode.LIST);
         updateEpisodeLayoutManager();
         episodeAdapter.setItems(displayEpisodes, tmdbEpisodes, episodeNumbers, selectedEpisode);
@@ -2124,6 +2314,13 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private void toggleEpisodeViewMode() {
         episodeGridMode = !episodeGridMode;
         renderEpisodes();
+    }
+
+    private void updateEpisodeViewModeButton() {
+        boolean switchToList = episodeGridMode;
+        binding.episodeViewMode.setText(switchToList ? R.string.detail_episode_view_list : R.string.detail_episode_view_grid);
+        binding.episodeViewMode.setIconResource(switchToList ? R.drawable.ic_site_list : R.drawable.ic_site_grid);
+        binding.episodeViewMode.setContentDescription(getString(switchToList ? R.string.detail_episode_view_list_action : R.string.detail_episode_view_grid_action));
     }
 
     private void updateEpisodeLayoutManager() {
@@ -3116,6 +3313,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         inlineStartPositionApplied = false;
         pendingInlineResult = null;
         currentInlineResult = null;
+        introSkipPlayback.reset();
         if (service() == null || player() == null || player().isEmpty()) {
             updateInlineButtons(false);
             return;
@@ -3984,13 +4182,28 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             showTvInlineEpisodes();
             return;
         }
-        FrameLayout content = new FrameLayout(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(ResUtil.dp2px(12), ResUtil.dp2px(8), ResUtil.dp2px(12), ResUtil.dp2px(8));
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        TextView title = new TextView(this);
+        title.setText(R.string.detail_episode);
+        title.setTextColor(0xFFEAF2F8);
+        title.setTextSize(18f);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        MaterialButton mode = createInlineEpisodeModeButton();
+        header.addView(mode, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ResUtil.dp2px(36)));
+        content.addView(header, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         RecyclerView recycler = new RecyclerView(this);
         recycler.setClipToPadding(false);
-        recycler.setLayoutManager(new GridLayoutManager(this, inlineEpisodeSpanCount()));
+        updateInlineEpisodeLayoutManager(recycler);
         int height = Math.min(ResUtil.dp2px(520), (int) (ResUtil.getScreenHeight(this) * 0.68f));
-        content.addView(recycler, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
+        LinearLayout.LayoutParams recyclerParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height);
+        recyclerParams.topMargin = ResUtil.dp2px(8);
+        content.addView(recycler, recyclerParams);
 
         AlertDialog[] holder = new AlertDialog[1];
         InlineEpisodeAdapter adapter = new InlineEpisodeAdapter(new InlineEpisodeAdapter.Listener() {
@@ -4008,9 +4221,14 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         });
         recycler.setAdapter(adapter);
         adapter.setItems(selectedFlag.getEpisodes(), selectedEpisode, inlineEpisodeTitles(selectedFlag.getEpisodes()));
+        mode.setOnClickListener(view -> {
+            inlineEpisodeGridMode = !inlineEpisodeGridMode;
+            updateInlineEpisodeLayoutManager(recycler);
+            updateInlineEpisodeModeButton(mode);
+            scrollInlineEpisodeToSelected(recycler, selectedFlag.getEpisodes());
+        });
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.detail_episode)
                 .setView(content)
                 .create();
         holder[0] = dialog;
@@ -4060,6 +4278,18 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         applyEpisodeDialogIconState(reverse, false);
         reverse.setOnFocusChangeListener((view, focused) -> applyEpisodeDialogIconState(reverse, focused));
         header.addView(reverse, new LinearLayout.LayoutParams(ResUtil.dp2px(34), ResUtil.dp2px(34)));
+        ImageView mode = new ImageView(this);
+        updateInlineEpisodeModeIcon(mode);
+        mode.setColorFilter(0xFFEAF2F8);
+        mode.setPadding(ResUtil.dp2px(8), ResUtil.dp2px(8), ResUtil.dp2px(8), ResUtil.dp2px(8));
+        mode.setFocusable(true);
+        mode.setFocusableInTouchMode(true);
+        mode.setClickable(true);
+        applyEpisodeDialogIconState(mode, false);
+        mode.setOnFocusChangeListener((view, focused) -> applyEpisodeDialogIconState(mode, focused));
+        LinearLayout.LayoutParams modeParams = new LinearLayout.LayoutParams(ResUtil.dp2px(34), ResUtil.dp2px(34));
+        modeParams.setMarginStart(ResUtil.dp2px(8));
+        header.addView(mode, modeParams);
         panel.addView(header, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         HorizontalScrollView pageScroll = new HorizontalScrollView(this);
@@ -4073,7 +4303,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
 
         RecyclerView recycler = new RecyclerView(this);
         recycler.setClipToPadding(false);
-        recycler.setLayoutManager(new GridLayoutManager(this, 3));
+        updateTvInlineEpisodeLayoutManager(recycler);
         InlineEpisodeAdapter adapter = new InlineEpisodeAdapter(new InlineEpisodeAdapter.Listener() {
             @Override
             public void onItemClick(Episode episode) {
@@ -4093,13 +4323,13 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         recyclerParams.topMargin = ResUtil.dp2px(6);
         panel.addView(recycler, recyclerParams);
 
-        final int pageSize = 12;
         final int[] pageIndex = {0};
         final List<TextView> pageButtons = new ArrayList<>();
         final Runnable[] render = new Runnable[1];
         final java.util.function.BiConsumer<Integer, Boolean> showPage = (index, focusEpisode) -> {
             List<Episode> ordered = orderedInlineEpisodes();
             if (ordered.isEmpty()) return;
+            int pageSize = inlineEpisodeDialogPageSize();
             int pageCount = (int) Math.ceil(ordered.size() / (float) pageSize);
             pageIndex[0] = Math.max(0, Math.min(index, pageCount - 1));
             int start = pageIndex[0] * pageSize;
@@ -4124,6 +4354,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             pageRow.removeAllViews();
             pageButtons.clear();
             if (ordered.isEmpty()) return;
+            int pageSize = inlineEpisodeDialogPageSize();
             int pageCount = (int) Math.ceil(ordered.size() / (float) pageSize);
             int selected = ordered.indexOf(selectedEpisode);
             int selectedPage = selected < 0 ? 0 : selected / pageSize;
@@ -4147,6 +4378,12 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         };
         reverse.setOnClickListener(view -> {
             toggleEpisodeReverse();
+            render[0].run();
+        });
+        mode.setOnClickListener(view -> {
+            inlineEpisodeGridMode = !inlineEpisodeGridMode;
+            updateTvInlineEpisodeLayoutManager(recycler);
+            updateInlineEpisodeModeIcon(mode);
             render[0].run();
         });
 
@@ -4280,6 +4517,90 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         icon.setBackground(background);
     }
 
+    private MaterialButton createInlineEpisodeModeButton() {
+        MaterialButton button = new MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        button.setMinWidth(ResUtil.dp2px(72));
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+        button.setInsetTop(0);
+        button.setInsetBottom(0);
+        button.setAllCaps(false);
+        button.setSingleLine(true);
+        button.setTextSize(13f);
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(ResUtil.dp2px(10), 0, ResUtil.dp2px(12), 0);
+        button.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
+        button.setIconPadding(ResUtil.dp2px(4));
+        button.setIconSize(ResUtil.dp2px(16));
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
+        updateInlineEpisodeModeButton(button);
+        button.setOnFocusChangeListener((view, focused) -> applyInlineEpisodeModeButtonState(button, focused));
+        return button;
+    }
+
+    private void updateInlineEpisodeModeButton(MaterialButton button) {
+        boolean switchToList = inlineEpisodeGridMode;
+        button.setText(switchToList ? R.string.detail_episode_view_list : R.string.detail_episode_view_grid);
+        button.setIconResource(switchToList ? R.drawable.ic_site_list : R.drawable.ic_site_grid);
+        button.setContentDescription(getString(switchToList ? R.string.detail_episode_view_list_action : R.string.detail_episode_view_grid_action));
+        applyInlineEpisodeModeButtonState(button, button.hasFocus());
+    }
+
+    private void applyInlineEpisodeModeButtonState(MaterialButton button, boolean focused) {
+        int text = focused ? 0xFFFFFFFF : 0xFFEAF2F8;
+        button.setTextColor(text);
+        button.setIconTint(ColorStateList.valueOf(text));
+        button.setBackgroundTintList(ColorStateList.valueOf(focused ? 0x552196F3 : 0x33263442));
+        button.setStrokeColor(ColorStateList.valueOf(focused ? 0xFF0077FF : 0x44FFFFFF));
+        button.setStrokeWidth(ResUtil.dp2px(focused ? 2 : 1));
+    }
+
+    private void updateInlineEpisodeModeIcon(ImageView icon) {
+        boolean switchToList = inlineEpisodeGridMode;
+        icon.setImageResource(switchToList ? R.drawable.ic_site_list : R.drawable.ic_site_grid);
+        icon.setContentDescription(getString(switchToList ? R.string.detail_episode_view_list_action : R.string.detail_episode_view_grid_action));
+        icon.setColorFilter(0xFFEAF2F8);
+    }
+
+    private void updateInlineEpisodeLayoutManager(RecyclerView recycler) {
+        RecyclerView.LayoutManager current = recycler.getLayoutManager();
+        if (inlineEpisodeGridMode) {
+            int spanCount = inlineEpisodeSpanCount();
+            if (current instanceof GridLayoutManager grid && grid.getSpanCount() == spanCount) return;
+            recycler.setLayoutManager(new GridLayoutManager(this, spanCount));
+        } else {
+            if (current instanceof LinearLayoutManager linear && !(current instanceof GridLayoutManager) && linear.getOrientation() == LinearLayoutManager.VERTICAL) return;
+            recycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+        }
+    }
+
+    private void updateTvInlineEpisodeLayoutManager(RecyclerView recycler) {
+        RecyclerView.LayoutManager current = recycler.getLayoutManager();
+        if (inlineEpisodeGridMode) {
+            if (current instanceof GridLayoutManager grid && grid.getSpanCount() == 3) return;
+            recycler.setLayoutManager(new GridLayoutManager(this, 3));
+        } else {
+            if (current instanceof LinearLayoutManager linear && !(current instanceof GridLayoutManager) && linear.getOrientation() == LinearLayoutManager.VERTICAL) return;
+            recycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+        }
+    }
+
+    private int inlineEpisodeDialogPageSize() {
+        return inlineEpisodeGridMode ? 12 : 6;
+    }
+
+    private void scrollInlineEpisodeToSelected(RecyclerView recycler, List<Episode> episodes) {
+        if (selectedEpisode == null || episodes == null) return;
+        int position = episodes.indexOf(selectedEpisode);
+        if (position < 0) return;
+        recycler.scrollToPosition(position);
+        recycler.post(() -> {
+            RecyclerView.ViewHolder holder = recycler.findViewHolderForAdapterPosition(position);
+            if (holder != null) holder.itemView.requestFocus();
+        });
+    }
+
     private int inlineEpisodeSpanCount() {
         int width = ResUtil.getScreenWidth(this);
         if (width >= ResUtil.dp2px(1200)) return 5;
@@ -4342,6 +4663,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private void enterInlineFullscreen() {
         if (inlineFullscreen || inlinePiPLayout || isInPictureInPictureMode()) return;
         inlineFullscreen = true;
+        updateDetailThemeButtonVisibility();
         requestedOrientation = getRequestedOrientation();
         playerParent = (ViewGroup) binding.playerPanel.getParent();
         playerLayoutParams = binding.playerPanel.getLayoutParams();
@@ -4478,6 +4800,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         playerLayoutParams = null;
         playerIndex = -1;
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+        updateDetailThemeButtonVisibility();
     }
 
     private void enterInlinePiPLayout() {
@@ -4487,6 +4810,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         inlinePiPIndex = inlinePiPParent.indexOfChild(binding.playerPanel);
         inlinePiPTranslationZ = binding.playerPanel.getTranslationZ();
         inlinePiPLayout = true;
+        updateDetailThemeButtonVisibility();
         // Keep the original source rect so PiP exits back to the inline card.
         inlinePiPSourceFrozen = true;
         inlinePiPParent.removeView(binding.playerPanel);
@@ -4519,6 +4843,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             inlinePiPSourceFrozen = false;
             if (inlinePiP != null) inlinePiP.update(TmdbDetailActivity.this, binding.playerPanel);
         });
+        updateDetailThemeButtonVisibility();
     }
 
     private void scheduleMobileInlineSideControlMarginUpdate() {
@@ -4558,6 +4883,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         saveInlineHistory();
         inlinePlaybackGeneration++;
         inlinePlaybackLoading = false;
+        introSkipPlayback.reset();
         hideInlineControls();
         if (service() != null) {
             player().stop();
@@ -4814,6 +5140,8 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             applyInlineStartPosition();
             updateInlineButtons(player().isPlaying());
             applyInlineShortDramaMode();
+            requestIntroSkipPlan();
+            applyAutoIntroSkip();
         }
         if (state == Player.STATE_ENDED) checkInlineEnded(true);
         updateInlineDisplayPanel();
@@ -4840,6 +5168,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, @NonNull Configuration newConfig) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
+        updateDetailThemeButtonVisibility();
         if (!isInlinePlayerMode()) return;
         if (isInPictureInPictureMode) {
             hideInlineControls();
@@ -4851,6 +5180,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         inlinePiPLayoutRequested = false;
         updateInlineButtons(service() != null && player() != null && !player().isEmpty() && player().isPlaying());
         updateInlineDisplayPanel();
+        updateDetailThemeButtonVisibility();
     }
 
     @Override
@@ -4961,6 +5291,41 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         if (history != null && service() != null && player() != null && !player().isReleased()) history.setPlayer(player().getPlayerType());
     }
 
+    private void requestIntroSkipPlan() {
+        if (!Setting.isAutoSkipIntroOutro() || player() == null) {
+            introSkipPlayback.reset();
+            return;
+        }
+        IntroSkipService.Query query = buildIntroSkipQuery();
+        if (query == null) return;
+        introSkipPlayback.request(query, this::applyAutoIntroSkip);
+    }
+
+    private boolean applyAutoIntroSkip() {
+        if (!Setting.isAutoSkipIntroOutro() || player() == null) return false;
+        return introSkipPlayback.apply(player(), () -> checkInlineEnded(false));
+    }
+
+    private IntroSkipService.Query buildIntroSkipQuery() {
+        TmdbItem item = matchedTmdbItem;
+        if (item == null || item.getTmdbId() <= 0) return null;
+        int season = 0;
+        int number = 0;
+        if (item.isTv()) {
+            TmdbEpisode tmdbEpisode = selectedEpisode == null ? null : selectedEpisode.getTmdbEpisode();
+            season = tmdbEpisode != null && tmdbEpisode.getSeasonNumber() > 0 ? tmdbEpisode.getSeasonNumber() : selectedSeasonNumber;
+            number = tmdbEpisode != null && tmdbEpisode.getNumber() > 0 ? tmdbEpisode.getNumber() : sourceEpisodeNumber(selectedEpisode);
+            if (season <= 0 || number <= 0) return null;
+        }
+        long duration = player() == null ? 0 : Math.max(0, player().getDuration());
+        return new IntroSkipService.Query(item.getTmdbId(), introSkipImdbId(), item.getMediaType(), season, number, duration);
+    }
+
+    private String introSkipImdbId() {
+        JsonObject externalIds = object(matchedTmdbDetail, "external_ids");
+        return string(externalIds, "imdb_id");
+    }
+
     @Override
     public void onTimeChanged(long time) {
         if (!isInlinePlayerMode() || inlinePlaybackLoading || !isOwner() || history == null || service() == null || player() == null || player().isEmpty()) return;
@@ -4974,6 +5339,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             updateInlineHistoryPlayer();
         }
         if (canUpdateProgress && history.canSave() && history.canSync()) syncInlineHistory();
+        if (canUpdateProgress && applyAutoIntroSkip()) return;
         if (canUpdateProgress && history.getEnding() > 0 && duration > 0 && history.getEnding() + position >= duration) checkInlineEnded(false);
         if (isInlineControlsVisible()) updateMobileInlineControlTime();
         updateInlineDisplayPanel();
@@ -5867,6 +6233,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
 
     private void addMetaChip(String text) {
         if (TextUtils.isEmpty(text)) return;
+        text = normalizeImdbBrand(text);
         ThemeColors colors = lightTheme ? ThemeColors.light() : ThemeColors.dark();
         TextView chip = new TextView(this);
         chip.setText(text);
@@ -5882,6 +6249,12 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         params.setMargins(0, 0, 10, 10);
         chip.setLayoutParams(params);
         binding.metaContainer.addView(chip);
+    }
+
+    private String normalizeImdbBrand(String text) {
+        if (TextUtils.isEmpty(text)) return text;
+        if (text.regionMatches(true, 0, "imdb", 0, 4)) return "IMDB" + text.substring(4);
+        return text.replace("IMDb", "IMDB");
     }
 
     private String buildSubtitle() {
@@ -6025,7 +6398,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private String externalIdLabel() {
         JsonObject ids = object(matchedTmdbDetail, "external_ids");
         String imdb = string(ids, "imdb_id");
-        if (!TextUtils.isEmpty(imdb)) return "IMDb " + imdb;
+        if (!TextUtils.isEmpty(imdb)) return "IMDB " + imdb;
         String tvdb = string(ids, "tvdb_id");
         return TextUtils.isEmpty(tvdb) ? "" : "TVDB " + tvdb;
     }

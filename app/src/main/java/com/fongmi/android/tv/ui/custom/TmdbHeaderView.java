@@ -23,6 +23,7 @@ import com.fongmi.android.tv.ui.adapter.TmdbCastAdapter;
 import com.fongmi.android.tv.ui.helper.TmdbUIAdapter;
 import com.fongmi.android.tv.ui.helper.TmdbNavigation;
 import com.fongmi.android.tv.utils.ResUtil;
+import com.fongmi.android.tv.utils.TmdbImageSelector;
 import com.google.android.flexbox.FlexboxLayout;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -589,14 +590,8 @@ public class TmdbHeaderView {
         TmdbItem item = adapter.getTmdbItem();
         if (item == null) return;
 
-        // 收集所有可用的背景图
+        // 收集所有可用的背景图，优先使用已按设备方向与清晰度筛选的图片。
         backdropPhotos.clear();
-        String mainBackdrop = item.getBackdropUrl();
-        if (!TextUtils.isEmpty(mainBackdrop)) {
-            backdropPhotos.add(mainBackdrop);
-        }
-
-        // 添加所有剧照
         java.util.List<String> photos = adapter.getPhotos();
         if (photos != null) {
             for (String photo : photos) {
@@ -605,6 +600,10 @@ public class TmdbHeaderView {
                 }
             }
         }
+        String mainBackdrop = TmdbImageSelector.originalUrl(item.getBackdropUrl());
+        if (!TextUtils.isEmpty(mainBackdrop) && !backdropPhotos.contains(mainBackdrop)) {
+            backdropPhotos.add(mainBackdrop);
+        }
 
         // 如果只有一张图，直接加载
         if (backdropPhotos.isEmpty()) {
@@ -612,7 +611,7 @@ public class TmdbHeaderView {
         }
 
         if (backdropPhotos.size() == 1) {
-            Glide.with(activity).load(backdropPhotos.get(0)).into(backdropView);
+            loadBackdropIntoView(backdropPhotos.get(0));
             return;
         }
 
@@ -639,6 +638,7 @@ public class TmdbHeaderView {
                 // 使用 Glide 预加载，加载完成后切换
                 Glide.with(activity)
                         .load(nextUrl)
+                        .centerCrop()
                         .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
                             @Override
                             public boolean onLoadFailed(com.bumptech.glide.load.engine.GlideException e, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
@@ -654,6 +654,7 @@ public class TmdbHeaderView {
                             public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
                                 // 图片加载完成，切换到这张图
                                 currentBackdropIndex = nextIndex;
+                                backdropView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                                 backdropView.setImageDrawable(resource);
 
                                 // 5秒后切换下一张
@@ -669,11 +670,17 @@ public class TmdbHeaderView {
 
         // 加载第一张
         if (!backdropPhotos.isEmpty()) {
-            Glide.with(activity).load(backdropPhotos.get(0)).into(backdropView);
+            loadBackdropIntoView(backdropPhotos.get(0));
             currentBackdropIndex = 0;
             // 5秒后开始切换
             backdropHandler.postDelayed(backdropRunnable, 5000);
         }
+    }
+
+    private void loadBackdropIntoView(String url) {
+        if (TextUtils.isEmpty(url) || backdropView == null) return;
+        backdropView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        Glide.with(activity).load(url).centerCrop().into(backdropView);
     }
 
     /**

@@ -116,6 +116,7 @@ import com.fongmi.android.tv.ui.dialog.TmdbSearchDialog;
 import com.fongmi.android.tv.ui.dialog.TitleDialog;
 import com.fongmi.android.tv.ui.dialog.TrackDialog;
 import com.fongmi.android.tv.ui.dialog.VideoContentDialog;
+import com.fongmi.android.tv.ui.helper.DetailThemeVisibility;
 import com.fongmi.android.tv.ui.helper.EpisodeDisplayPolicy;
 import com.fongmi.android.tv.ui.helper.TmdbNavigation;
 import com.fongmi.android.tv.utils.AudioUtil;
@@ -187,6 +188,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private boolean playHealthRecorded;
     private boolean mNativePersonalTmdbLoading;
     private boolean mNativePersonalDoubanLoading;
+    private boolean mEpisodeGridMode = true;
     private int mEpisodeSpanCount;
     private Runnable mR1;
     private Runnable mR2;
@@ -1167,7 +1169,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.next.setVisibility(size < 2 ? View.GONE : View.VISIBLE);
         mBinding.control.prev.setVisibility(size < 2 ? View.GONE : View.VISIBLE);
         mBinding.reverse.setVisibility(size < 2 ? View.GONE : View.VISIBLE);
-        if (mBinding.episodeViewMode != null) mBinding.episodeViewMode.setVisibility(View.GONE);
+        boolean showViewMode = useTmdbCard && size > 1;
+        if (!showViewMode) mEpisodeGridMode = true;
+        updateEpisodeViewModeButton();
+        if (mBinding.episodeViewMode != null) mBinding.episodeViewMode.setVisibility(showViewMode ? View.VISIBLE : View.GONE);
         mBinding.episode.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
         mBinding.more.setVisibility(View.GONE);
         List<EpisodeGroupAdapter.Group> groups = EpisodeGroupAdapter.build(size, getSelectedEpisodePosition(items), mHistory != null && mHistory.isRevSort());
@@ -1188,18 +1193,36 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void setEpisodeItems(List<Episode> items) {
-        mEpisodeAdapter.setUseTmdbCard(shouldUseTmdbEpisodeCards(items));
-        updateEpisodeSpan(items);
+        boolean useTmdbCard = shouldUseTmdbEpisodeCards(items);
+        if (!useTmdbCard) mEpisodeGridMode = true;
+        mEpisodeAdapter.setUseTmdbCard(useTmdbCard);
+        mEpisodeAdapter.setViewType(useTmdbCard && !mEpisodeGridMode ? ViewType.HORI : ViewType.GRID);
+        updateEpisodeLayout(items);
         mEpisodeAdapter.addAll(items);
+        updateEpisodeViewModeButton();
     }
 
-    private void updateEpisodeSpan(List<Episode> items) {
+    private void updateEpisodeLayout(List<Episode> items) {
+        if (shouldUseTmdbEpisodeCards(items) && !mEpisodeGridMode) {
+            RecyclerView.LayoutManager manager = mBinding.episode.getLayoutManager();
+            if (!(manager instanceof LinearLayoutManager) || manager instanceof GridLayoutManager || ((LinearLayoutManager) manager).getOrientation() != LinearLayoutManager.HORIZONTAL) {
+                mBinding.episode.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            }
+            updateEpisodeDecoration(new SpaceItemDecoration(8));
+            return;
+        }
         int span = getEpisodeSpan(items);
-        if (span == mEpisodeSpanCount) return;
         mEpisodeSpanCount = span;
-        mBinding.episode.setLayoutManager(new GridLayoutManager(this, mEpisodeSpanCount));
+        RecyclerView.LayoutManager manager = mBinding.episode.getLayoutManager();
+        if (!(manager instanceof GridLayoutManager) || ((GridLayoutManager) manager).getSpanCount() != mEpisodeSpanCount) {
+            mBinding.episode.setLayoutManager(new GridLayoutManager(this, mEpisodeSpanCount));
+        }
+        updateEpisodeDecoration(new SpaceItemDecoration(mEpisodeSpanCount, 8));
+    }
+
+    private void updateEpisodeDecoration(SpaceItemDecoration decoration) {
         if (mEpisodeDecoration != null) mBinding.episode.removeItemDecoration(mEpisodeDecoration);
-        mBinding.episode.addItemDecoration(mEpisodeDecoration = new SpaceItemDecoration(mEpisodeSpanCount, 8));
+        mBinding.episode.addItemDecoration(mEpisodeDecoration = decoration);
     }
 
     private int getEpisodeSpan(List<Episode> items) {
@@ -1284,7 +1307,20 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void toggleEpisodeViewMode() {
-        onEpisodes();
+        if (mBinding.episodeViewMode == null || mBinding.episodeViewMode.getVisibility() != View.VISIBLE) {
+            onEpisodes();
+            return;
+        }
+        mEpisodeGridMode = !mEpisodeGridMode;
+        setEpisodeItems(new ArrayList<>(mEpisodeAdapter.getItems()));
+        scrollToPosition(mBinding.episode, mEpisodeAdapter.getPosition());
+    }
+
+    private void updateEpisodeViewModeButton() {
+        if (mBinding.episodeViewMode == null) return;
+        boolean switchToList = mEpisodeGridMode;
+        mBinding.episodeViewMode.setImageResource(switchToList ? R.drawable.ic_site_list : R.drawable.ic_site_grid);
+        mBinding.episodeViewMode.setContentDescription(getString(switchToList ? R.string.detail_episode_view_list_action : R.string.detail_episode_view_grid_action));
     }
 
     private boolean onChange() {
@@ -2129,12 +2165,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
                 break;
             case Player.STATE_READY:
                 recordPlayHealth(true, "");
-                // 非 TMDB 模式：立即隐藏进度条
-                // TMDB 模式：等待图片加载完成回调（onImagesLoaded）
-                android.util.Log.d("VideoActivity", "STATE_READY - mTmdbHeaderView=" + (mTmdbHeaderView != null));
-                if (!shouldUseTmdbDetailLayout()) {
-                    hideProgress();
-                }
+                hideProgress();
                 checkControl();
                 player().reset();
                 applyShortDramaMode();
@@ -2450,6 +2481,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void setFullscreen(boolean fullscreen) {
         Util.toggleFullscreen(this, this.fullscreen = fullscreen);
+        updateFusionThemeButtonVisibility();
     }
 
     private boolean isShortDramaSource() {
@@ -2582,6 +2614,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         params.addRule(RelativeLayout.BELOW, R.id.statusBar);
         params.setMargins(0, ResUtil.dp2px(14), ResUtil.dp2px(24), 0);
         ((RelativeLayout) mBinding.getRoot()).addView(mFusionThemeButton, params);
+        updateFusionThemeButtonVisibility();
     }
 
     private void cycleFusionTheme() {
@@ -2617,6 +2650,13 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mFusionThemeButton.setTextColor(light ? 0xFF12202D : 0xFFE9F0F5);
         mFusionThemeButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(light ? 0xE6E7EDF3 : 0xCC252A32));
         mFusionThemeButton.setStrokeColor(android.content.res.ColorStateList.valueOf(light ? 0x33424B57 : 0x42FFFFFF));
+        updateFusionThemeButtonVisibility();
+    }
+
+    private void updateFusionThemeButtonVisibility() {
+        if (mFusionThemeButton == null) return;
+        boolean show = DetailThemeVisibility.showFusionThemeButton(Setting.isFusionDetailPage(), isFullscreen(), isInPictureInPictureMode());
+        mFusionThemeButton.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private String fusionThemeLabel() {
@@ -3184,6 +3224,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, @NonNull Configuration newConfig) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
+        updateFusionThemeButtonVisibility();
         if (!isFullscreen()) setVideoView(isInPictureInPictureMode);
         if (isInPictureInPictureMode) {
             hideControl();

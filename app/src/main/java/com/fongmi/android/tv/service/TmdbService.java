@@ -9,6 +9,7 @@ import com.fongmi.android.tv.bean.TmdbConfig;
 import com.fongmi.android.tv.bean.TmdbEpisode;
 import com.fongmi.android.tv.bean.TmdbItem;
 import com.fongmi.android.tv.bean.TmdbPerson;
+import com.fongmi.android.tv.utils.TmdbImageSelector;
 import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.utils.Path;
 import com.google.gson.JsonArray;
@@ -298,15 +299,11 @@ public class TmdbService {
     }
 
     public List<String> photos(JsonObject detail, @NonNull TmdbConfig config) {
-        List<String> items = new ArrayList<>();
-        for (JsonElement element : array(detail, "images", "backdrops")) {
-            if (!element.isJsonObject()) continue;
-            String url = image(config.getBackdropBase(), string(element.getAsJsonObject(), "file_path"));
-            if (TextUtils.isEmpty(url) || items.contains(url)) continue;
-            items.add(url);
-            if (items.size() >= 24) break;
-        }
-        return items;
+        return photos(detail, config, true);
+    }
+
+    public List<String> photos(JsonObject detail, @NonNull TmdbConfig config, boolean preferLandscape) {
+        return TmdbImageSelector.backgrounds(detail, config.getImageBase(), config.getBackdropBase(), preferLandscape, 24);
     }
 
     public List<String> seasonPhotos(JsonObject season, @NonNull TmdbConfig config) {

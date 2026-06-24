@@ -24,6 +24,8 @@
     <string name="detail_episode_forward">Forward</string>
     <string name="detail_episode_view_grid">Grid</string>
     <string name="detail_episode_view_list">List</string>
+    <string name="detail_episode_view_grid_action">Switch to grid</string>
+    <string name="detail_episode_view_list_action">Switch to list</string>
 
     <!-- Keep -->
     <string name="keep">Keep</string>
@@ -1058,7 +1060,7 @@
     <string name="setting_detail_open_mode">Detail page mode</string>
     <string name="setting_detail_open_original">Original detail</string>
     <string name="setting_detail_open_native">TMDB embedded enhancement</string>
-    <string name="setting_detail_open_original_enhanced">Original enhancement</string>
+    <string name="setting_detail_open_original_enhanced">Native enhancement</string>
     <string name="setting_detail_open_fusion">Immersive fusion</string>
     <string name="setting_detail_open_enhanced">Colorful detail</string>
     <string name="setting_detail_open_player">Detail direct play</string>

@@ -22,7 +22,7 @@
             android:id="@+id/backdrop"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="fitCenter" />
+            android:scaleType="centerCrop" />
 
         <View
             android:id="@+id/backdropShade"
@@ -800,6 +800,14 @@
                                 android:layout_marginTop="10dp"
                                 app:flexWrap="wrap" />
 
+                            <com.google.android.flexbox.FlexboxLayout
+                                android:id="@+id/ratingsContainer"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:visibility="gone"
+                                app:flexWrap="wrap" />
+
                             <TextView
                                 android:id="@+id/sourceValue"
                                 android:layout_width="match_parent"
@@ -1005,13 +1013,19 @@
                             android:layout_height="36dp"
                             android:layout_marginStart="8dp"
                             android:minHeight="36dp"
-                            android:minWidth="58dp"
-                            android:paddingStart="12dp"
+                            android:minWidth="72dp"
+                            android:paddingStart="10dp"
                             android:paddingEnd="12dp"
-                            android:text="@string/detail_episode_view_list"
+                            android:contentDescription="@string/detail_episode_view_grid_action"
+                            android:text="@string/detail_episode_view_grid"
                             android:textColor="@android:color/white"
                             android:textSize="12sp"
                             app:backgroundTint="#2B3743"
+                            app:icon="@drawable/ic_site_grid"
+                            app:iconGravity="textStart"
+                            app:iconPadding="4dp"
+                            app:iconSize="16dp"
+                            app:iconTint="@android:color/white"
                             app:strokeColor="@android:color/transparent" />
                     </LinearLayout>
 
