@@ -1433,6 +1433,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         bindBackdrop();
         bindHeader();
         bindMeta();
+        bindRatings();
         bindOverview();
         renderSeasonSelection();
         renderEpisodes();
