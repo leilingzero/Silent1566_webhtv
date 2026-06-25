@@ -106,6 +106,7 @@ import com.fongmi.android.tv.ui.custom.SpaceItemDecoration;
 import com.fongmi.android.tv.ui.dialog.CastDialog;
 import com.fongmi.android.tv.ui.dialog.ControlDialog;
 import com.fongmi.android.tv.ui.dialog.DanmakuDialog;
+import com.fongmi.android.tv.ui.dialog.DisplayDialog;
 import com.fongmi.android.tv.ui.dialog.EpisodeGridDialog;
 import com.fongmi.android.tv.ui.dialog.EpisodeListDialog;
 import com.fongmi.android.tv.ui.dialog.InfoDialog;
@@ -627,6 +628,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.cast.setOnClickListener(view -> onCast());
         mBinding.control.info.setOnClickListener(view -> onInfo());
         mBinding.control.keep.setOnClickListener(view -> onKeep());
+        mBinding.control.display.setOnClickListener(view -> onDisplay());
         mBinding.control.play.setOnClickListener(view -> checkPlay());
         mBinding.control.next.setOnClickListener(view -> checkNext());
         mBinding.control.prev.setOnClickListener(view -> checkPrev());
@@ -1474,6 +1476,12 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         updateTmdbKeepState();
     }
 
+    private void onDisplay() {
+        DisplayDialog.showPlayerOsd(this, () -> {
+            if (mOsd != null) mOsd.start();
+        });
+    }
+
     private void checkPlay() {
         setR1Callback();
         if (player().isPlaying()) onPaused();
@@ -1853,12 +1861,13 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.right.getRoot().setVisibility(isFullscreen() ? View.VISIBLE : View.GONE);
         mBinding.control.right.rotate.setVisibility(isFullscreen() && !isLock() ? View.VISIBLE : View.GONE);
         mBinding.control.fullscreen.setVisibility(isLock() || shortDrama ? View.GONE : View.VISIBLE);
-        mBinding.control.keep.setVisibility(mHistory == null || isFullscreen() ? View.GONE : View.VISIBLE);
+        mBinding.control.keep.setVisibility(mHistory == null ? View.GONE : View.VISIBLE);
         mBinding.control.parse.setVisibility(isFullscreen() && isUseParse() ? View.VISIBLE : View.GONE);
         mBinding.control.action.getRoot().setVisibility(isFullscreen() ? View.VISIBLE : View.GONE);
         mBinding.control.right.lock.setVisibility(isFullscreen() ? View.VISIBLE : View.GONE);
         mBinding.control.info.setVisibility(player().isEmpty() ? View.GONE : View.VISIBLE);
-        mBinding.control.cast.setVisibility(View.GONE);
+        mBinding.control.cast.setVisibility(isFullscreen() && mHistory != null && !player().isEmpty() ? View.VISIBLE : View.GONE);
+        mBinding.control.display.setVisibility(isFullscreen() ? View.VISIBLE : View.GONE);
         mBinding.control.center.setVisibility(isLock() ? View.GONE : View.VISIBLE);
         mBinding.control.bottom.setVisibility(isLock() ? View.GONE : View.VISIBLE);
         mBinding.control.back.setVisibility(isLock() ? View.GONE : View.VISIBLE);
@@ -2674,12 +2683,14 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void applyFusionDetailChrome() {
         if (mFusionChromeApplied) return;
+        RelativeLayout chromeRoot = getFusionChromeRoot();
+        if (chromeRoot == null) return;
         mFusionChromeApplied = true;
         applyFusionThemeSurface();
 
         RelativeLayout.LayoutParams wallParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
         mBinding.contextWall.setLayoutParams(wallParams);
-        mBinding.videoContextScrim.setVisibility(View.GONE);
+        if (mBinding.videoContextScrim != null) mBinding.videoContextScrim.setVisibility(View.GONE);
 
         RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, ResUtil.dp2px(FUSION_PLAYER_HEIGHT_DP));
         videoParams.addRule(RelativeLayout.BELOW, R.id.statusBar);
@@ -2699,6 +2710,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void setFusionPlayerBottomGap() {
         ensureFusionPlayerBottomSpacer();
+        if (mFusionPlayerBottomSpacer == null) return;
         ViewGroup.LayoutParams params = mBinding.swipeLayout.getLayoutParams();
         if (!(params instanceof RelativeLayout.LayoutParams layoutParams)) return;
         layoutParams.addRule(RelativeLayout.BELOW, mFusionPlayerBottomSpacer.getId());
@@ -2708,15 +2720,19 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void ensureFusionPlayerBottomSpacer() {
         if (mFusionPlayerBottomSpacer != null) return;
+        RelativeLayout chromeRoot = getFusionChromeRoot();
+        if (chromeRoot == null) return;
         mFusionPlayerBottomSpacer = new View(this);
         mFusionPlayerBottomSpacer.setId(View.generateViewId());
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, ResUtil.dp2px(FUSION_PLAYER_BOTTOM_GAP_DP));
         params.addRule(RelativeLayout.BELOW, R.id.video);
-        ((RelativeLayout) mBinding.getRoot()).addView(mFusionPlayerBottomSpacer, params);
+        chromeRoot.addView(mFusionPlayerBottomSpacer, params);
     }
 
     private void ensureFusionThemeButton() {
         if (mFusionThemeButton != null) return;
+        RelativeLayout chromeRoot = getFusionChromeRoot();
+        if (chromeRoot == null) return;
         mFusionThemeButton = new MaterialButton(this);
         mFusionThemeButton.setAllCaps(false);
         mFusionThemeButton.setMinHeight(ResUtil.dp2px(40));
@@ -2731,8 +2747,14 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         params.addRule(RelativeLayout.ALIGN_PARENT_END);
         params.addRule(RelativeLayout.BELOW, R.id.statusBar);
         params.setMargins(0, ResUtil.dp2px(14), ResUtil.dp2px(24), 0);
-        ((RelativeLayout) mBinding.getRoot()).addView(mFusionThemeButton, params);
+        chromeRoot.addView(mFusionThemeButton, params);
         updateFusionThemeButtonVisibility();
+    }
+
+    private RelativeLayout getFusionChromeRoot() {
+        if (mBinding.video.getParent() instanceof RelativeLayout parent) return parent;
+        if (mBinding.getRoot() instanceof RelativeLayout root) return root;
+        return null;
     }
 
     private void cycleFusionTheme() {

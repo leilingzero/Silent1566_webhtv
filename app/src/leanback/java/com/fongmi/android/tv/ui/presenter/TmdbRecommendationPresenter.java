@@ -7,9 +7,9 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.leanback.widget.Presenter;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.bean.TmdbItem;
 import com.fongmi.android.tv.databinding.AdapterTmdbRecommendationBinding;
+import com.fongmi.android.tv.utils.ImgUtil;
 
 import java.util.Locale;
 
@@ -58,9 +58,7 @@ public class TmdbRecommendationPresenter extends Presenter {
         } else {
             holder.binding.rating.setVisibility(View.GONE);
         }
-        if (!tmdbItem.getPosterUrl().isEmpty()) {
-            Glide.with(holder.binding.poster.getContext()).load(tmdbItem.getPosterUrl()).into(holder.binding.poster);
-        }
+        ImgUtil.load(tmdbItem.getTitle(), tmdbItem.getPosterUrl(), holder.binding.poster);
         setOnClickListener(holder, view -> {
             if (mListener != null) mListener.onItemClick(tmdbItem);
         });

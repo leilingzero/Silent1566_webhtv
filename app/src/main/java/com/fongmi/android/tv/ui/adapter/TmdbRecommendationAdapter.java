@@ -9,10 +9,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.bean.TmdbItem;
 import com.fongmi.android.tv.ui.helper.TmdbCinemaTheme;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.Util;
 import com.google.android.material.card.MaterialCardView;
 
@@ -161,16 +161,7 @@ public class TmdbRecommendationAdapter extends RecyclerView.Adapter<TmdbRecommen
             }
 
             String image = cinema && item.getBackdropUrl() != null && !item.getBackdropUrl().isEmpty() ? item.getBackdropUrl() : item.getPosterUrl();
-            if (image != null && !image.isEmpty()) {
-                Glide.with(poster.getContext())
-                        .load(image)
-                        .override(cinema ? 552 : 300, cinema ? 312 : 450)
-                        .thumbnail(0.1f)
-                        .dontAnimate()
-                        .into(poster);
-            } else {
-                poster.setImageResource(R.color.black);
-            }
+            ImgUtil.load(item.getTitle(), image, poster, true, cinema ? 552 : 300, cinema ? 312 : 450);
 
             double vote = item.getRating();
             if (vote > 0) {

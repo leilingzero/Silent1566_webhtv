@@ -17,6 +17,7 @@ import com.fongmi.android.tv.bean.Episode;
 import com.fongmi.android.tv.bean.TmdbEpisode;
 import com.fongmi.android.tv.databinding.AdapterEpisodeBinding;
 import com.fongmi.android.tv.databinding.AdapterEpisodeCardBinding;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.ResUtil;
 
 import java.util.ArrayList;
@@ -253,14 +254,15 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
         binding.cardContainer.setForeground(binding.cardContainer.getContext().getDrawable(R.drawable.selector_episode_card));
 
         // 加载剧照
+        String cardTitle = getCardTitle(tmdbEpisode);
         if (!tmdbEpisode.getStillUrl().isEmpty()) {
             loadStill(binding, tmdbEpisode.getStillUrl());
         } else {
-            binding.still.setImageResource(R.color.black);
+            ImgUtil.load(cardTitle, "", binding.still);
         }
 
         // 设置标题
-        binding.cardTitle.setText(getCardTitle(tmdbEpisode));
+        binding.cardTitle.setText(cardTitle);
 
         // 网格模式展示更多元信息，列表模式保持干净的横向剧照条
         if (gridMode && !tmdbEpisode.getDate().isEmpty()) {

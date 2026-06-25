@@ -8,10 +8,10 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.leanback.widget.Presenter;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.bean.TmdbPerson;
 import com.fongmi.android.tv.databinding.AdapterTmdbCastBinding;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.google.android.material.card.MaterialCardView;
 
@@ -43,9 +43,7 @@ public class TmdbCastPresenter extends Presenter {
         bindFocusStyle(holder.binding.getRoot());
         holder.binding.name.setText(person.getName());
         holder.binding.role.setText(person.getSubtitle());
-        if (!person.getProfileUrl().isEmpty()) {
-            Glide.with(holder.binding.getRoot().getContext()).load(person.getProfileUrl()).into(holder.binding.profile);
-        }
+        ImgUtil.load(person.getName(), person.getProfileUrl(), holder.binding.profile);
         setOnClickListener(holder, view -> {
             if (mListener != null) mListener.onItemClick(person);
         });

@@ -21,7 +21,6 @@ import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.api.config.VodConfig;
 import com.fongmi.android.tv.bean.Site;
@@ -36,6 +35,7 @@ import com.fongmi.android.tv.ui.adapter.TmdbPersonWorkAdapter;
 import com.fongmi.android.tv.ui.helper.TmdbNavigation;
 import com.fongmi.android.tv.ui.helper.TmdbPersonWorkFilters;
 import com.fongmi.android.tv.utils.Notify;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.Task;
 import com.fongmi.android.tv.utils.TmdbImageSaver;
 import com.fongmi.android.tv.utils.Util;
@@ -166,15 +166,7 @@ public class TmdbPersonDialog {
         name.setText(person.getName());
         role.setText(person.getSubtitle());
 
-        // 头像（优化加载）
-        String profileUrl = person.getProfileUrl();
-        if (profileUrl != null && !profileUrl.isEmpty()) {
-            Glide.with(activity)
-                    .load(profileUrl)
-                    .override(200, 300)
-                    .dontAnimate()
-                    .into(profile);
-        }
+        ImgUtil.load(person.getName(), person.getProfileUrl(), profile, true, 200, 300);
 
         // 设置照片列表（带点击事件）
         photoAdapter = new TmdbPersonPhotoAdapter(this::onPhotoClick);

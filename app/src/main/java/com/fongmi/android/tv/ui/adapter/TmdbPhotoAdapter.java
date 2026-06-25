@@ -8,8 +8,8 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.R;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.Util;
 
 import java.util.ArrayList;
@@ -98,11 +98,7 @@ public class TmdbPhotoAdapter extends RecyclerView.Adapter<TmdbPhotoAdapter.View
         }
 
         void bind(String url, int position, OnItemClickListener listener) {
-            if (url != null && !url.isEmpty()) {
-                Glide.with(photo.getContext()).load(url).into(photo);
-            } else {
-                photo.setImageResource(R.color.black);
-            }
+            ImgUtil.load(photo.getContext().getString(R.string.tmdb_photos_label), url, photo);
 
             if (listener != null) {
                 itemView.setOnClickListener(v -> listener.onItemClick(url, position));

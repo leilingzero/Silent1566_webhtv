@@ -1045,14 +1045,29 @@
     <string name="tmdb_personal_recommendations_douban_label">個性推薦 · 豆瓣</string>
     <string name="tmdb_personal_recommendations_ai_label">個性推薦 · 智能</string>
     <string name="dialog_ai_enable">啟用智能推薦</string>
-    <string name="dialog_ai_endpoint_label">OpenAI Responses API 服務端點</string>
+    <string name="dialog_ai_protocol_label">協議類型</string>
+    <string-array name="dialog_ai_protocol_labels">
+        <item>OpenAI Responses API</item>
+        <item>OpenAI Chat Completions</item>
+        <item>Anthropic Messages</item>
+        <item>Gemini Native generateContent</item>
+    </string-array>
+    <string name="dialog_ai_endpoint_label">API 服務端點 / 基地址</string>
     <string name="dialog_ai_endpoint_hint">https://api.openai.com/v1/responses</string>
     <string name="dialog_ai_api_key_label">API key</string>
     <string name="dialog_ai_api_key_hint">sk-...</string>
     <string name="dialog_ai_model_label">模型</string>
     <string name="dialog_ai_model_hint">gpt-4.1-mini</string>
+    <string name="dialog_ai_fetch_models">取得模型</string>
+    <string name="dialog_ai_fetch_models_running">正在取得模型列表...</string>
+    <string name="dialog_ai_fetch_models_success">已取得 %1$d 個模型</string>
+    <string name="dialog_ai_fetch_models_empty">未取得可用模型</string>
+    <string name="dialog_ai_fetch_models_failed">模型取得失敗：%1$s</string>
+    <string name="dialog_ai_user_agent_label">自訂 User-Agent</string>
+    <string name="dialog_ai_user_agent_hint">可選，用於有 UA 限制的供應商</string>
     <string name="dialog_ai_prompt_config">提示詞設定</string>
     <string name="dialog_ai_recommend_prompt_label">推薦提示詞</string>
+    <string name="dialog_ai_prompt_reset">重置預設</string>
     <string name="dialog_ai_test">測試配置</string>
     <string name="dialog_ai_test_running">正在測試 AI 配置...</string>
     <string name="dialog_ai_test_success">AI 測試通過：解析到 %1$d 條，示例 %2$s</string>

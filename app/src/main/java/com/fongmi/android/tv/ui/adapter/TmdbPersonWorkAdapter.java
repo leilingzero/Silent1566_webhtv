@@ -10,10 +10,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.bean.TmdbItem;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.Util;
 import com.google.android.material.card.MaterialCardView;
 
@@ -106,17 +105,7 @@ public class TmdbPersonWorkAdapter extends RecyclerView.Adapter<TmdbPersonWorkAd
             holder.ratingBadge.setVisibility(View.GONE);
         }
 
-        // 海报（高清大图 + 磁盘缓存优化）
-        String posterUrl = item.getPosterUrl();
-        if (posterUrl != null && !posterUrl.isEmpty()) {
-            Glide.with(holder.poster.getContext())
-                    .load(toHighResUrl(posterUrl))
-                    .override(400, 600)
-                    .thumbnail(0.1f)
-                    .dontAnimate()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .into(holder.poster);
-        }
+        ImgUtil.load(item.getTitle(), toHighResUrl(item.getPosterUrl()), holder.poster, true, 400, 600);
 
         // 点击事件
         holder.itemView.setOnClickListener(v -> {

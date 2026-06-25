@@ -8,13 +8,13 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.bean.Episode;
 import com.fongmi.android.tv.bean.TmdbEpisode;
 import com.fongmi.android.tv.databinding.AdapterEpisodeHoriBinding;
 import com.fongmi.android.tv.ui.adapter.EpisodeAdapter;
 import com.fongmi.android.tv.ui.base.BaseEpisodeHolder;
 import com.fongmi.android.tv.ui.dialog.EpisodeDetailDialog;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.ResUtil;
 
 public class EpisodeHoriHolder extends BaseEpisodeHolder {
@@ -52,15 +52,8 @@ public class EpisodeHoriHolder extends BaseEpisodeHolder {
             binding.cardTitle.setText(EpisodeAdapter.getTitle(item));
             binding.cardTitle.setSelected(item.isSelected());
 
-            // 剧照
-            if (!TextUtils.isEmpty(tmdbEpisode.getStillUrl())) {
-                binding.still.setVisibility(View.VISIBLE);
-                Glide.with(binding.still.getContext())
-                        .load(tmdbEpisode.getStillUrl())
-                        .into(binding.still);
-            } else {
-                binding.still.setVisibility(View.GONE);
-            }
+            binding.still.setVisibility(View.VISIBLE);
+            ImgUtil.load(EpisodeAdapter.getTitle(item), tmdbEpisode.getStillUrl(), binding.still);
 
             // 简介
             if (!TextUtils.isEmpty(tmdbEpisode.getOverview())) {

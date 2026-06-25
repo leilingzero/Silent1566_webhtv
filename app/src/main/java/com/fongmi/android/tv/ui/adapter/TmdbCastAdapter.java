@@ -13,10 +13,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.bean.TmdbPerson;
 import com.fongmi.android.tv.ui.helper.TmdbCinemaTheme;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.Util;
 import com.google.android.material.card.MaterialCardView;
 
@@ -111,11 +111,7 @@ public class TmdbCastAdapter extends RecyclerView.Adapter<TmdbCastAdapter.ViewHo
             applyStyle(cinema, light);
             name.setText(person.getName());
             role.setText(person.getSubtitle());
-            if (person.getProfileUrl() != null && !person.getProfileUrl().isEmpty()) {
-                Glide.with(profile.getContext()).load(person.getProfileUrl()).into(profile);
-            } else {
-                profile.setImageResource(R.color.black);
-            }
+            ImgUtil.load(person.getName(), person.getProfileUrl(), profile);
             bindFocusChrome(cinema, light);
 
             if (listener != null) {

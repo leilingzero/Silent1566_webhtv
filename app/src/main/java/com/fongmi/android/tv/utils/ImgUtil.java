@@ -104,14 +104,16 @@ public class ImgUtil {
     public static void load(String text, String url, ImageView view, boolean vod, int width, int height) {
         view.setScaleType(vod ? CENTER_CROP : FIT_CENTER);
         if (!vod) view.setVisibility(TextUtils.isEmpty(url) ? View.GONE : View.VISIBLE);
-        if (TextUtils.isEmpty(url) || failed.contains(url)) view.setImageDrawable(getTextDrawable(text, vod));
-        else try {
+        if (TextUtils.isEmpty(url) || failed.contains(url)) {
+            showTextDrawable(text, view, vod);
+        } else try {
             RequestBuilder<Drawable> builder = Glide.with(view).load(getUrl(url)).listener(getListener(text, url, view, vod));
             if (width > 0 && height > 0) builder.override(width, height);
             if (vod) builder.centerCrop().into(view);
             else builder.fitCenter().into(view);
         } catch (Throwable e) {
             e.printStackTrace();
+            showTextDrawable(text, view, vod);
         }
     }
 
@@ -140,11 +142,24 @@ public class ImgUtil {
         return builder.buildRoundRect(text, ColorGenerator.get400(text), ResUtil.dp2px(4));
     }
 
+    private static void showTextDrawable(String text, ImageView view, boolean vod) {
+        showTextDrawable(text, view, vod, true);
+    }
+
+    private static void showTextDrawable(String text, ImageView view, boolean vod, boolean clear) {
+        try {
+            if (clear) Glide.with(view).clear(view);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+        view.setImageDrawable(getTextDrawable(text, vod));
+    }
+
     private static RequestListener<Drawable> getListener(String text, String url, ImageView view, boolean vod) {
         return new RequestListener<>() {
             @Override
             public boolean onLoadFailed(@Nullable GlideException e, Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
-                view.setImageDrawable(getTextDrawable(text, vod));
+                showTextDrawable(text, view, vod, false);
                 failed.add(url);
                 return true;
             }

@@ -115,6 +115,7 @@ public class TmdbEpisodeAdapter extends RecyclerView.Adapter<TmdbEpisodeAdapter.
         String stillUrl = tmdbEpisode != null ? tmdbEpisode.getStillUrl() : "";
         String imageUrl = !TextUtils.isEmpty(stillUrl) ? stillUrl : (mode == Mode.GRID ? fallbackStillUrl : "");
         boolean hasImage = !TextUtils.isEmpty(imageUrl);
+        boolean showVisual = hasImage || !compact;
 
         applyCardSize(holder, compact);
         if (mode == Mode.GRID) {
@@ -139,26 +140,26 @@ public class TmdbEpisodeAdapter extends RecyclerView.Adapter<TmdbEpisodeAdapter.
             holder.binding.overview.setText(overview);
             holder.binding.overview.setVisibility(TextUtils.isEmpty(overview) ? View.GONE : View.VISIBLE);
         }
-        holder.binding.index.setTextColor(hasImage || !light ? 0xFFFFFFFF : 0xFF15202B);
-        holder.binding.title.setTextColor(hasImage || !light ? 0xE6FFFFFF : 0xCC15202B);
-        holder.binding.date.setTextColor(hasImage || !light ? 0xCCFFFFFF : 0x9915202B);
-        holder.binding.overview.setTextColor(hasImage || !light ? 0xE6FFFFFF : 0xB315202B);
+        holder.binding.index.setTextColor(showVisual || !light ? 0xFFFFFFFF : 0xFF15202B);
+        holder.binding.title.setTextColor(showVisual || !light ? 0xE6FFFFFF : 0xCC15202B);
+        holder.binding.date.setTextColor(showVisual || !light ? 0xCCFFFFFF : 0x9915202B);
+        holder.binding.overview.setTextColor(showVisual || !light ? 0xE6FFFFFF : 0xB315202B);
         holder.binding.badge.setText(episodeBadge(tmdbEpisode));
         holder.binding.badge.setVisibility(TextUtils.isEmpty(holder.binding.badge.getText()) ? View.GONE : View.VISIBLE);
-        applyBadgeStyle(holder.binding.date, hasImage);
-        applyBadgeStyle(holder.binding.badge, hasImage);
+        applyBadgeStyle(holder.binding.date, showVisual);
+        applyBadgeStyle(holder.binding.badge, showVisual);
         TmdbCardFocusHelper.bind(
                 holder.binding.getRoot(),
                 activated ? (light ? 0xFFE5F7EC : 0x6630A86B) : (light ? 0xEEFFFFFF : 0xCC16202A),
                 activated ? activeStrokeColor : (light ? 0x33647480 : 0x33FFFFFF),
                 activated ? 2 : 1);
-        if (hasImage) {
+        if (showVisual) {
             holder.binding.stillFrame.setVisibility(View.VISIBLE);
             ImgUtil.load(title, imageUrl, holder.binding.still);
         } else {
             holder.binding.stillFrame.setVisibility(View.GONE);
         }
-        holder.binding.scrim.setVisibility(hasImage ? View.VISIBLE : View.GONE);
+        holder.binding.scrim.setVisibility(showVisual ? View.VISIBLE : View.GONE);
         holder.binding.getRoot().setOnClickListener(view -> listener.onItemClick(episode));
         holder.binding.getRoot().setOnLongClickListener(view -> {
             listener.onItemLongClick(view, episode, episodeNumber);

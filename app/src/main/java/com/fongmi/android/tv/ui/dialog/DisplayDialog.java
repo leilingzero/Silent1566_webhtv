@@ -19,14 +19,25 @@ public class DisplayDialog extends BaseAlertDialog {
 
     private DialogDisplayBinding binding;
     private Runnable callback;
+    private Mode mode = Mode.DISPLAY;
 
     public static void show(FragmentActivity activity, Runnable callback) {
         for (Fragment fragment : activity.getSupportFragmentManager().getFragments()) if (fragment instanceof DisplayDialog) return;
         new DisplayDialog().callback(callback).show(activity.getSupportFragmentManager(), null);
     }
 
+    public static void showPlayerOsd(FragmentActivity activity, Runnable callback) {
+        for (Fragment fragment : activity.getSupportFragmentManager().getFragments()) if (fragment instanceof DisplayDialog) return;
+        new DisplayDialog().mode(Mode.PLAYER_OSD).callback(callback).show(activity.getSupportFragmentManager(), null);
+    }
+
     private DisplayDialog callback(Runnable callback) {
         this.callback = callback;
+        return this;
+    }
+
+    private DisplayDialog mode(Mode mode) {
+        this.mode = mode;
         return this;
     }
 
@@ -42,6 +53,14 @@ public class DisplayDialog extends BaseAlertDialog {
 
     @Override
     protected void initView() {
+        if (mode == Mode.PLAYER_OSD) {
+            initPlayerOsdView();
+            return;
+        }
+        initDisplayView();
+    }
+
+    private void initDisplayView() {
         binding.displayTime.setSelected(PlayerSetting.isDisplayTime());
         binding.displayTraffic.setSelected(PlayerSetting.isDisplayTraffic());
         binding.displaySize.setSelected(PlayerSetting.isDisplaySize());
@@ -50,14 +69,39 @@ public class DisplayDialog extends BaseAlertDialog {
         binding.displayTitle.setSelected(PlayerSetting.isDisplayTitle());
     }
 
+    private void initPlayerOsdView() {
+        binding.displaySize.setVisibility(View.GONE);
+        binding.displayTime.setSelected(PlayerSetting.isOsdTime());
+        binding.displayTraffic.setSelected(PlayerSetting.isOsdTraffic());
+        binding.displayProgress.setSelected(PlayerSetting.isOsdProgress());
+        binding.displayMini.setSelected(PlayerSetting.isOsdMini());
+        binding.displayTitle.setSelected(PlayerSetting.isOsdTitle());
+    }
+
     @Override
     protected void initEvent() {
+        if (mode == Mode.PLAYER_OSD) {
+            initPlayerOsdEvent();
+            return;
+        }
+        initDisplayEvent();
+    }
+
+    private void initDisplayEvent() {
         binding.displayTime.setOnClickListener(v -> setDisplay(binding.displayTime, Display.TIME));
         binding.displayTraffic.setOnClickListener(v -> setDisplay(binding.displayTraffic, Display.TRAFFIC));
         binding.displaySize.setOnClickListener(v -> setDisplay(binding.displaySize, Display.SIZE));
         binding.displayProgress.setOnClickListener(v -> setDisplay(binding.displayProgress, Display.PROGRESS));
         binding.displayMini.setOnClickListener(v -> setDisplay(binding.displayMini, Display.MINI));
         binding.displayTitle.setOnClickListener(v -> setDisplay(binding.displayTitle, Display.TITLE));
+    }
+
+    private void initPlayerOsdEvent() {
+        binding.displayTime.setOnClickListener(v -> setPlayerOsd(binding.displayTime, PlayerOsd.TIME));
+        binding.displayTraffic.setOnClickListener(v -> setPlayerOsd(binding.displayTraffic, PlayerOsd.TRAFFIC));
+        binding.displayProgress.setOnClickListener(v -> setPlayerOsd(binding.displayProgress, PlayerOsd.PROGRESS));
+        binding.displayMini.setOnClickListener(v -> setPlayerOsd(binding.displayMini, PlayerOsd.MINI));
+        binding.displayTitle.setOnClickListener(v -> setPlayerOsd(binding.displayTitle, PlayerOsd.TITLE));
     }
 
     private void setDisplay(TextView view, Display display) {
@@ -86,6 +130,29 @@ public class DisplayDialog extends BaseAlertDialog {
         if (callback != null) callback.run();
     }
 
+    private void setPlayerOsd(TextView view, PlayerOsd osd) {
+        boolean selected = !view.isSelected();
+        view.setSelected(selected);
+        switch (osd) {
+            case TIME:
+                PlayerSetting.putOsdTime(selected);
+                break;
+            case TRAFFIC:
+                PlayerSetting.putOsdTraffic(selected);
+                break;
+            case PROGRESS:
+                PlayerSetting.putOsdProgress(selected);
+                break;
+            case MINI:
+                PlayerSetting.putOsdMini(selected);
+                break;
+            case TITLE:
+                PlayerSetting.putOsdTitle(selected);
+                break;
+        }
+        if (callback != null) callback.run();
+    }
+
     @Override
     public void onStart() {
         super.onStart();
@@ -95,5 +162,13 @@ public class DisplayDialog extends BaseAlertDialog {
 
     private enum Display {
         TIME, TRAFFIC, SIZE, PROGRESS, MINI, TITLE
+    }
+
+    private enum PlayerOsd {
+        TIME, TRAFFIC, PROGRESS, MINI, TITLE
+    }
+
+    private enum Mode {
+        DISPLAY, PLAYER_OSD
     }
 }

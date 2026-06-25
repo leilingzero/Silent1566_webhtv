@@ -8,8 +8,8 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.R;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.Util;
 
 import java.util.ArrayList;
@@ -54,12 +54,7 @@ public class TmdbPersonPhotoAdapter extends RecyclerView.Adapter<TmdbPersonPhoto
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         String url = items.get(position);
-        Glide.with(holder.photo.getContext())
-                .load(url)
-                .override(320, 480)   // 限制加载尺寸
-                .thumbnail(0.1f)      // 缩略图
-                .dontAnimate()        // 禁用动画
-                .into(holder.photo);
+        ImgUtil.load(holder.photo.getContext().getString(R.string.detail_person_photos), url, holder.photo, true, 320, 480);
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onItemClick(position, url);
         });

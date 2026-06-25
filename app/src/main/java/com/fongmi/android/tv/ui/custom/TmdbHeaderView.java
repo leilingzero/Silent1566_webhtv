@@ -24,6 +24,7 @@ import com.fongmi.android.tv.ui.adapter.TmdbCastAdapter;
 import com.fongmi.android.tv.ui.helper.TmdbUIAdapter;
 import com.fongmi.android.tv.ui.helper.TmdbNavigation;
 import com.fongmi.android.tv.ui.helper.TmdbCinemaTheme;
+import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.TmdbImageSelector;
 import com.google.android.flexbox.FlexboxLayout;
@@ -197,11 +198,9 @@ public class TmdbHeaderView {
         // 海报
         ImageView poster = headerRoot.findViewById(R.id.tmdbPoster);
         String posterUrl = item.getPosterUrl();
-        if (!TextUtils.isEmpty(posterUrl)) {
-            Glide.with(activity).load(posterUrl).into(poster);
-            ImageView fusionPoster = headerRoot.findViewById(R.id.tmdbFusionPoster);
-            if (fusionPoster != null) Glide.with(activity).load(posterUrl).into(fusionPoster);
-        }
+        ImgUtil.load(item.getTitle(), posterUrl, poster);
+        ImageView fusionPoster = headerRoot.findViewById(R.id.tmdbFusionPoster);
+        if (fusionPoster != null) ImgUtil.load(item.getTitle(), posterUrl, fusionPoster);
 
         // 标题
         TextView title = headerRoot.findViewById(R.id.tmdbTitle);

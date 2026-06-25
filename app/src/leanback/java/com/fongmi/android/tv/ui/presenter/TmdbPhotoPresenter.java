@@ -6,8 +6,9 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.leanback.widget.Presenter;
 
-import com.bumptech.glide.Glide;
+import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.databinding.AdapterTmdbPhotoBinding;
+import com.fongmi.android.tv.utils.ImgUtil;
 
 public class TmdbPhotoPresenter extends Presenter {
 
@@ -30,7 +31,7 @@ public class TmdbPhotoPresenter extends Presenter {
     public void onBindViewHolder(Presenter.ViewHolder viewHolder, Object item) {
         String url = (String) item;
         ViewHolder holder = (ViewHolder) viewHolder;
-        Glide.with(holder.binding.photo.getContext()).load(url).into(holder.binding.photo);
+        ImgUtil.load(holder.binding.photo.getContext().getString(R.string.tmdb_photos_label), url, holder.binding.photo);
         setOnClickListener(holder, view -> {
             if (mListener != null) mListener.onItemClick(url, 0);
         });

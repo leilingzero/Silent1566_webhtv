@@ -21,6 +21,27 @@
             android:layout_height="wrap_content"
             android:paddingTop="14dp"
             android:paddingBottom="8dp"
+            android:text="@string/dialog_ai_protocol_label"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+            android:id="@+id/protocol"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:drawable/editbox_background"
+            android:dropDownHeight="240dp"
+            android:inputType="none"
+            android:maxLines="1"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:textSize="14sp" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="14dp"
+            android:paddingBottom="8dp"
             android:text="@string/dialog_ai_endpoint_label"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -67,12 +88,53 @@
             android:textSize="14sp"
             android:textStyle="bold" />
 
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+                android:id="@+id/model"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:drawable/editbox_background"
+                android:dropDownHeight="280dp"
+                android:hint="@string/dialog_ai_model_hint"
+                android:inputType="text"
+                android:maxLines="1"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/fetchModels"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:minWidth="84dp"
+                android:text="@string/dialog_ai_fetch_models"
+                android:textAllCaps="false" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/dialog_ai_user_agent_label"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/model"
+            android:id="@+id/userAgent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@android:drawable/editbox_background"
-            android:hint="@string/dialog_ai_model_hint"
+            android:hint="@string/dialog_ai_user_agent_hint"
             android:inputType="text"
             android:maxLines="1"
             android:paddingStart="12dp"
