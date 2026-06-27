@@ -54,6 +54,7 @@
     <string name="play_config">Config</string>
     <string name="play_cast">Cast</string>
     <string name="play_change">Change</string>
+    <string name="play_short_display">Short</string>
     <string name="play_search">Search</string>
     <string name="play_fullscreen">Fullscreen</string>
     <string name="play_exit_fullscreen">Exit full</string>
@@ -872,6 +873,8 @@
     <string name="search_hot_movie">Movie</string>
     <string name="search_hot_variety">Variety</string>
     <string name="search_loading">Searching...</string>
+    <string name="search_progress">(%1$d/%2$d)</string>
+    <string name="search_no_result">No results</string>
 
     <!-- Dialog -->
     <string name="dialog_edit">Edit</string>
@@ -1067,7 +1070,9 @@
     <string-array name="select_ui_scale">
         <item>Follow system</item>
         <item>Standard</item>
+        <item>Mild compact</item>
         <item>Compact</item>
+        <item>More compact</item>
         <item>Smaller</item>
     </string-array>
 
@@ -1096,6 +1101,7 @@
         <item>@string/display_progress</item>
         <item>@string/display_mini</item>
         <item>@string/display_title</item>
+        <item>Playback params</item>
     </string-array>
 
     <string-array name="select_track">

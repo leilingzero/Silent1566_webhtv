@@ -53,6 +53,7 @@
     <string name="play_config">配置</string>
     <string name="play_cast">投屏</string>
     <string name="play_change">換源</string>
+    <string name="play_short_display">短顯</string>
     <string name="play_search">搜尋</string>
     <string name="play_fullscreen">全螢幕</string>
     <string name="play_exit_fullscreen">退出全螢幕</string>
@@ -848,6 +849,8 @@
     <string name="search_hot_movie">電影榜</string>
     <string name="search_hot_variety">綜藝榜</string>
     <string name="search_loading">搜尋中...</string>
+    <string name="search_progress">(%1$d/%2$d)</string>
+    <string name="search_no_result">沒有搜到</string>
 
     <!-- Dialog -->
     <string name="dialog_edit">修改</string>
@@ -978,7 +981,9 @@
     <string-array name="select_ui_scale">
         <item>跟隨系統</item>
         <item>標準</item>
+        <item>較緊湊</item>
         <item>緊湊</item>
+        <item>更緊湊</item>
         <item>更小</item>
     </string-array>
 
@@ -1007,6 +1012,7 @@
         <item>@string/display_progress</item>
         <item>@string/display_mini</item>
         <item>@string/display_title</item>
+        <item>播放參數</item>
     </string-array>
 
     <string-array name="select_track">

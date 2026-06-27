@@ -21,12 +21,12 @@ public class Episode implements Parcelable, Diffable<Episode> {
     private String desc;
     @SerializedName("url")
     private String url;
-    private String displayName;
+    private transient String displayName;
 
     private int index;
     private int number;
     private boolean selected;
-    private TmdbEpisode tmdbEpisode;  // TMDB 集数详情
+    private TmdbEpisode tmdbEpisode;
 
     private Episode(String name, String desc, String url) {
         this.number = Util.getNumber(name);
@@ -62,16 +62,20 @@ public class Episode implements Parcelable, Diffable<Episode> {
         this.name = name;
     }
 
+    public String getDesc() {
+        return TextUtils.isEmpty(desc) ? "" : desc;
+    }
+
+    public String getRawDisplayName() {
+        return getDesc().concat(getName());
+    }
+
     public String getDisplayName() {
-        return TextUtils.isEmpty(displayName) ? getName() : displayName;
+        return TextUtils.isEmpty(displayName) ? getRawDisplayName() : displayName;
     }
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
-    }
-
-    public String getDesc() {
-        return TextUtils.isEmpty(desc) ? "" : desc;
     }
 
     public String getUrl() {

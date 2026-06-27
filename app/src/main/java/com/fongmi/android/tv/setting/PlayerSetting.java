@@ -275,7 +275,7 @@ public class PlayerSetting {
     }
 
     public static boolean[] getDisplayChecked() {
-        return new boolean[]{isDisplayTime(), isDisplayTraffic(), isDisplaySize(), isDisplayProgress(), isDisplayMini(), isDisplayTitle()};
+        return new boolean[]{isDisplayTime(), isDisplayTraffic(), isDisplaySize(), isDisplayProgress(), isDisplayMini(), isDisplayTitle(), isOsdDiagnostics()};
     }
 
     public static void putDisplayChecked(boolean[] checked) {
@@ -285,6 +285,7 @@ public class PlayerSetting {
         putDisplayProgress(valueAt(checked, 3, isDisplayProgress()));
         putDisplayMini(valueAt(checked, 4, isDisplayMini()));
         putDisplayTitle(valueAt(checked, 5, isDisplayTitle()));
+        putOsdDiagnostics(valueAt(checked, 6, isOsdDiagnostics()));
     }
 
     public static boolean isCaption() {
@@ -408,8 +409,16 @@ public class PlayerSetting {
         putDisplaySize(value);
     }
 
+    public static boolean isOsdDiagnostics() {
+        return Prefers.getBoolean("player_osd_diagnostics");
+    }
+
+    public static void putOsdDiagnostics(boolean value) {
+        Prefers.put("player_osd_diagnostics", value);
+    }
+
     public static boolean isOsdEnabled() {
-        return isOsdTitle() || isOsdTime() || isOsdSize() || isOsdProgress() || isOsdTraffic() || isOsdMini();
+        return isOsdTitle() || isOsdTime() || isOsdSize() || isOsdProgress() || isOsdTraffic() || isOsdMini() || isOsdDiagnostics();
     }
 
     private static boolean valueAt(boolean[] checked, int index, boolean fallback) {

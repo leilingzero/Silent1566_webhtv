@@ -19,6 +19,7 @@ import com.fongmi.android.tv.bean.TmdbEpisode;
 import com.fongmi.android.tv.databinding.AdapterEpisodeBinding;
 import com.fongmi.android.tv.databinding.AdapterEpisodeCardBinding;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.utils.EpisodeTitleCompact;
 import com.fongmi.android.tv.utils.EpisodeTitleFormatter;
 import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.ResUtil;
@@ -66,6 +67,7 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
     }
 
     public void addAll(List<Episode> items) {
+        EpisodeTitleCompact.apply(items);
         mItems.clear();
         mItems.addAll(items);
         column = useTmdbCard ? 1 : getColumn(items);
@@ -167,13 +169,16 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
     }
 
     public static int getColumn(List<Episode> items) {
-        int max = 1;
-        for (Episode item : items) max = Math.max(max, item.getName().length());
-        if (max <= 1) return 8;
-        if (max <= 3) return 6;
-        if (max <= 5) return 5;
-        if (max <= 8) return 4;
-        if (max <= 14) return 3;
+        int maxTextWidth = 0;
+        int maxWidth = ResUtil.getScreenWidth() - ResUtil.dp2px(48);
+        int spacing = ResUtil.dp2px(8);
+        int padding = ResUtil.dp2px(40);
+        EpisodeTitleCompact.apply(items);
+        for (Episode item : items) maxTextWidth = Math.max(maxTextWidth, ResUtil.getTextWidth(item.getDisplayName(), 16) + padding);
+        for (int candidate : new int[]{8, 6, 5, 4, 3, 2}) {
+            int width = (maxWidth - spacing * (candidate - 1)) / candidate;
+            if (maxTextWidth <= width) return candidate;
+        }
         return 2;
     }
 

@@ -13,6 +13,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.HorizontalScrollView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -63,6 +64,7 @@ import com.fongmi.android.tv.db.AppDatabase;
 import com.fongmi.android.tv.event.RefreshEvent;
 import com.fongmi.android.tv.impl.CustomTarget;
 import com.fongmi.android.tv.model.SiteViewModel;
+import com.fongmi.android.tv.model.SearchProgress;
 import com.fongmi.android.tv.playback.PlaybackEventCollector;
 import com.fongmi.android.tv.player.IntroSkipPlayback;
 import com.fongmi.android.tv.player.PlayerHelper;
@@ -144,6 +146,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private Observer<Result> mObserveDetail;
     private Observer<Result> mObservePlayer;
     private Observer<Result> mObserveSearch;
+    private Observer<SearchProgress> mObserveSearchProgress;
     private EpisodeAdapter mEpisodeAdapter;
     private EpisodeAdapter mEpisodeGridAdapter;
     private QualityAdapter mQualityAdapter;
@@ -632,6 +635,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mObserveDetail = this::setDetail;
         mObservePlayer = this::setPlayer;
         mObserveSearch = this::setSearch;
+        mObserveSearchProgress = this::setSearchProgress;
         mBroken = new ArrayList<>();
         mR1 = this::hideControl;
         mR2 = this::updateFocus;
@@ -640,7 +644,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         checkCast();
         SpiderDebug.log("video-flow", "initView preview ready cost=%dms", System.currentTimeMillis() - start);
         setRecyclerView();
-        mOsd = new PlayerOsdController(mBinding.osd.getRoot(), mBinding.osd.osdTopLeft, mBinding.osd.osdTopRight, mBinding.osd.osdBottomLeft, mBinding.osd.osdBottomRight, mBinding.osd.osdMiniProgress, new PlayerOsdController.Source() {
+        setShortDisplay();
+        mOsd = new PlayerOsdController(mBinding.osd.getRoot(), mBinding.osd.osdTopLeft, mBinding.osd.osdTopRight, mBinding.osd.osdBottomLeft, mBinding.osd.osdBottomRight, mBinding.osd.osdDiagnostics, mBinding.osd.osdMiniProgress, new PlayerOsdController.Source() {
             @Override
             public PlayerManager getPlayer() {
                 return service() == null ? null : player();
@@ -699,10 +704,13 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.fullscreen.setOnClickListener(view -> onFullscreen());
         mBinding.control.action.danmaku.setOnClickListener(view -> onDanmaku());
         mBinding.control.action.opening.setOnClickListener(view -> onOpening());
+        mBinding.shortDisplay.setOnClickListener(view -> onShortDisplay());
+        mBinding.control.action.speed.setOnKeyListener((view, keyCode, event) -> onSpeedKey(event));
         mBinding.control.action.speed.setOnLongClickListener(view -> onSpeedLong());
         mBinding.control.action.reset.setOnLongClickListener(view -> onResetToggle());
         mBinding.control.action.ending.setOnLongClickListener(view -> onEndingReset());
         mBinding.control.action.opening.setOnLongClickListener(view -> onOpeningReset());
+        setActionFocusScroll();
         mBinding.video.setOnTouchListener((view, event) -> mKeyDown.onTouchEvent(event));
         mBinding.flag.addOnChildViewHolderSelectedListener(new OnChildViewHolderSelectedListener() {
             @Override
@@ -725,6 +733,23 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                 if (count > getEpisodeSegmentSize(count) && position > 1) scrollToEpisode(mArrayAdapter.getStart(position));
             }
         });
+    }
+
+    private void setActionFocusScroll() {
+        HorizontalScrollView scroll = mBinding.control.action.getRoot();
+        if (scroll.getChildCount() == 0 || !(scroll.getChildAt(0) instanceof ViewGroup group)) return;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            child.setOnFocusChangeListener((view, hasFocus) -> {
+                if (hasFocus) scroll.post(() -> scroll.smoothScrollTo(Math.max(0, view.getLeft() - ResUtil.dp2px(24)), 0));
+            });
+        }
+    }
+
+    private boolean onSpeedKey(KeyEvent event) {
+        if (!KeyUtil.isActionUp(event) || !KeyUtil.isEnterKey(event)) return false;
+        onSpeed();
+        return true;
     }
 
     private void setRecyclerView() {
@@ -831,6 +856,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mViewModel.getResult().observeForever(mObserveDetail);
         mViewModel.getPlayer().observeForever(mObservePlayer);
         mViewModel.getSearch().observeForever(mObserveSearch);
+        mViewModel.getSearchProgress().observeForever(mObserveSearchProgress);
     }
 
     private void checkCast() {
@@ -1305,6 +1331,13 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         SpiderDebug.log("tmdb-tv", "episode loading finished without tmdb episodes, reveal plain list");
     }
 
+    private void refreshEpisodeTitles() {
+        if (mEpisodeAdapter == null || mFlagAdapter == null || mFlagAdapter.getItemCount() == 0) return;
+        int position = mEpisodeAdapter.getSelectedPosition();
+        setEpisodeAdapter(getFlag().getEpisodes(), false);
+        if (position != RecyclerView.NO_POSITION) scrollToEpisode(position);
+    }
+
     private void seamless(Flag flag) {
         Episode episode = flag.find(mHistory.getEpisode(), getMark().isEmpty());
         setQualityVisible(episode != null && episode.isSelected() && mQualityAdapter.getItemCount() > 1);
@@ -1706,6 +1739,16 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         initSearch(keyword, false);
     }
 
+    private void onShortDisplay() {
+        Setting.putCompactEpisodeTitle(!Setting.isCompactEpisodeTitle());
+        setShortDisplay();
+        refreshEpisodeTitles();
+    }
+
+    private void setShortDisplay() {
+        mBinding.shortDisplay.setSelected(Setting.isCompactEpisodeTitle());
+    }
+
     private void onKeep() {
         Keep keep = Keep.find(getHistoryKey());
         Notify.show(keep != null ? R.string.keep_del : R.string.keep_add);
@@ -1723,9 +1766,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     private void onFullscreen() {
-        if (isFullscreen()) exitFullscreen();
+        boolean exit = isFullscreen();
+        if (exit) exitFullscreen();
         else enterFullscreen();
-        showControl(mBinding.control.action.fullscreen);
+        showControl(exit ? mBinding.control.action.fullscreen : mBinding.control.action.player);
     }
 
     private void onRepeat() {
@@ -3680,6 +3724,12 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         App.removeCallbacks(mR4);
     }
 
+    private void setSearchProgress(SearchProgress progress) {
+        if (progress == null || isInitAuto()) return;
+        showQuickSearchDialog(new ArrayList<>());
+        if (mQuickSearchDialog != null) mQuickSearchDialog.setProgress(progress.current(), progress.total(), progress.finished());
+    }
+
     private void showQuickSearchDialog(List<Vod> items) {
         if (quickSearchDialogClosed) return;
         if (mQuickSearchDialog != null) {
@@ -3767,7 +3817,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     private void setFullscreen(boolean fullscreen) {
         this.fullscreen = fullscreen;
-        mBinding.control.action.fullscreen.setText(fullscreen ? R.string.play_exit_fullscreen : R.string.play_fullscreen);
+        mBinding.control.action.fullscreen.setVisibility(fullscreen ? View.GONE : View.VISIBLE);
+        mBinding.control.action.fullscreen.setText(R.string.play_fullscreen);
     }
 
     private void initTmdbMode() {
@@ -4123,6 +4174,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mViewModel.getResult().removeObserver(mObserveDetail);
         mViewModel.getPlayer().removeObserver(mObservePlayer);
         mViewModel.getSearch().removeObserver(mObserveSearch);
+        mViewModel.getSearchProgress().removeObserver(mObserveSearchProgress);
         SiteHealthStore.flush();
         super.onDestroy();
     }
