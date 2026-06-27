@@ -112,6 +112,57 @@ public class TmdbDetailActivityLayoutTest {
                         && body.contains("binding.keepFusion.setSelected(kept)"));
     }
 
+    @Test
+    public void inlineEpisodeDialogKeepsTallViewportAndReadableLightThemeStates() throws Exception {
+        Path activityPath = findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "TmdbDetailActivity.java"));
+        String activity = new String(Files.readAllBytes(activityPath), StandardCharsets.UTF_8);
+        Path adapterPath = findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "adapter", "InlineEpisodeAdapter.java"));
+        String adapter = new String(Files.readAllBytes(adapterPath), StandardCharsets.UTF_8);
+
+        int method = activity.indexOf("private void showInlineEpisodes()");
+        int nextMethod = activity.indexOf("private void showTvInlineEpisodes()", method);
+        String body = activity.substring(method, nextMethod);
+
+        assertTrue(activityPath + " is missing showInlineEpisodes", method >= 0);
+        assertTrue("mobile inline episode dialog should reserve a taller viewport so paged grids do not collapse",
+                body.contains("ResUtil.dp2px(620)") && body.contains("0.78f"));
+        assertTrue("mobile inline episode dialog should tint its container from the resolved detail theme",
+                body.contains("ThemeColors colors = lightTheme ? ThemeColors.light() : ThemeColors.dark();")
+                        && body.contains("content.setBackground(background);")
+                        && body.contains("title.setTextColor(colors.primary);")
+                        && body.contains("adapter.setLight(lightTheme);"));
+        assertTrue("inline episode page chips should stay readable in light theme",
+                activity.contains("button.setTextColor(lightTheme ? colors.secondary : 0xFFC6D0D9);")
+                        && activity.contains("background.setColor(lightTheme ? 0x1F20B866 : 0x332196F3);")
+                        && activity.contains("button.setTextColor(lightTheme ? colors.accent : 0xFF85C7FF);"));
+        assertTrue("inline episode adapter should expose a light-theme palette for playable items",
+                adapter.contains("public void setLight(boolean light)")
+                        && adapter.contains("int normalText = light ? 0xFF1E2A36 : COLOR_TEXT;")
+                        && adapter.contains("int normalBg = light ? 0xFFF1F5F9 : COLOR_NORMAL;"));
+    }
+
+    @Test
+    public void inlineEpisodeModeToggleClicksImmediatelyOnMobileWhileTvKeepsFocusNavigation() throws Exception {
+        Path activityPath = findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "TmdbDetailActivity.java"));
+        String activity = new String(Files.readAllBytes(activityPath), StandardCharsets.UTF_8);
+
+        int mobileMethod = activity.indexOf("private MaterialButton createInlineEpisodeModeButton()");
+        int mobileMethodEnd = activity.indexOf("private void updateInlineEpisodeModeButton(MaterialButton button)", mobileMethod);
+        int tvMethod = activity.indexOf("private void showTvInlineEpisodes()");
+        int tvMethodEnd = activity.indexOf("private boolean moveEpisodeDialogPageFocus(", tvMethod);
+
+        assertTrue(activityPath + " is missing createInlineEpisodeModeButton", mobileMethod >= 0 && mobileMethodEnd > mobileMethod);
+        assertTrue(activityPath + " is missing showTvInlineEpisodes", tvMethod >= 0 && tvMethodEnd > tvMethod);
+
+        String mobileBody = activity.substring(mobileMethod, mobileMethodEnd);
+        String tvBody = activity.substring(tvMethod, tvMethodEnd);
+
+        assertTrue("mobile inline episode mode toggle should switch on the first tap instead of becoming touch-focusable",
+                !mobileBody.contains("button.setFocusableInTouchMode(true);"));
+        assertTrue("TV inline episode mode toggle should stay touch-focusable for remote-driven focus navigation",
+                tvBody.contains("mode.setFocusableInTouchMode(true);"));
+    }
+
     private static Path findMainJavaPath() {
         Path moduleRelative = Path.of("src", "main", "java");
         if (Files.exists(moduleRelative)) return moduleRelative;

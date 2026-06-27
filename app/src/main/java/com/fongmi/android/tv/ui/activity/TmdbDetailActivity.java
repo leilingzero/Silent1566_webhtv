@@ -4529,15 +4529,21 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             showTvInlineEpisodes();
             return;
         }
+        ThemeColors colors = lightTheme ? ThemeColors.light() : ThemeColors.dark();
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(colors.panel);
+        background.setCornerRadius(ResUtil.dp2px(22));
+        background.setStroke(ResUtil.dp2px(1), colors.line);
+        content.setBackground(background);
         content.setPadding(ResUtil.dp2px(12), ResUtil.dp2px(8), ResUtil.dp2px(12), ResUtil.dp2px(8));
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.setOrientation(LinearLayout.HORIZONTAL);
         TextView title = new TextView(this);
         title.setText(R.string.detail_episode);
-        title.setTextColor(0xFFEAF2F8);
+        title.setTextColor(colors.primary);
         title.setTextSize(18f);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -4556,7 +4562,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         RecyclerView recycler = new RecyclerView(this);
         recycler.setClipToPadding(false);
         updateInlineEpisodeLayoutManager(recycler);
-        int height = Math.min(ResUtil.dp2px(520), (int) (ResUtil.getScreenHeight(this) * 0.68f));
+        int height = Math.min(ResUtil.dp2px(620), (int) (ResUtil.getScreenHeight(this) * 0.78f));
         LinearLayout.LayoutParams recyclerParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height);
         recyclerParams.topMargin = ResUtil.dp2px(8);
         content.addView(recycler, recyclerParams);
@@ -4575,6 +4581,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
                 return true;
             }
         });
+        adapter.setLight(lightTheme);
         recycler.setAdapter(adapter);
         final int[] pageIndex = {0};
         final boolean[] manualPage = {false};
@@ -4886,7 +4893,8 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         button.setEllipsize(TextUtils.TruncateAt.END);
         button.setGravity(android.view.Gravity.CENTER);
         button.setFocusable(true);
-        button.setFocusableInTouchMode(true);
+        button.setFocusableInTouchMode(false);
+        button.setClickable(true);
         button.setMinWidth(ResUtil.dp2px(136));
         button.setPadding(ResUtil.dp2px(18), 0, ResUtil.dp2px(18), 0);
         applyEpisodeDialogPageState(button, selected, false);
@@ -4894,19 +4902,20 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private void applyEpisodeDialogPageState(TextView button, boolean selected, boolean focused) {
+        ThemeColors colors = lightTheme ? ThemeColors.light() : ThemeColors.dark();
         GradientDrawable background = new GradientDrawable();
         background.setCornerRadius(ResUtil.dp2px(6));
         if (focused) {
-            background.setColor(0x552196F3);
+            background.setColor(lightTheme ? 0x1A2196F3 : 0x552196F3);
             background.setStroke(ResUtil.dp2px(3), 0xFF0077FF);
-            button.setTextColor(0xFFFFFFFF);
+            button.setTextColor(lightTheme ? colors.primary : 0xFFFFFFFF);
         } else if (selected) {
-            background.setColor(0x332196F3);
-            background.setStroke(ResUtil.dp2px(2), 0xFF2196F3);
-            button.setTextColor(0xFF85C7FF);
+            background.setColor(lightTheme ? 0x1F20B866 : 0x332196F3);
+            background.setStroke(ResUtil.dp2px(2), lightTheme ? colors.accent : 0xFF2196F3);
+            button.setTextColor(lightTheme ? colors.accent : 0xFF85C7FF);
         } else {
             background.setColor(0x00000000);
-            button.setTextColor(0xFFC6D0D9);
+            button.setTextColor(lightTheme ? colors.secondary : 0xFFC6D0D9);
         }
         button.setSelected(selected);
         button.setBackground(background);
@@ -4940,7 +4949,8 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         button.setIconPadding(ResUtil.dp2px(4));
         button.setIconSize(ResUtil.dp2px(16));
         button.setFocusable(true);
-        button.setFocusableInTouchMode(true);
+        button.setFocusableInTouchMode(false);
+        button.setClickable(true);
         updateInlineEpisodeModeButton(button);
         button.setOnFocusChangeListener((view, focused) -> applyInlineEpisodeModeButtonState(button, focused));
         return button;
@@ -4955,11 +4965,12 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private void applyInlineEpisodeModeButtonState(MaterialButton button, boolean focused) {
-        int text = focused ? 0xFFFFFFFF : 0xFFEAF2F8;
+        ThemeColors colors = lightTheme ? ThemeColors.light() : ThemeColors.dark();
+        int text = focused ? (lightTheme ? colors.primary : 0xFFFFFFFF) : colors.primary;
         button.setTextColor(text);
         button.setIconTint(ColorStateList.valueOf(text));
-        button.setBackgroundTintList(ColorStateList.valueOf(focused ? 0x552196F3 : 0x33263442));
-        button.setStrokeColor(ColorStateList.valueOf(focused ? 0xFF0077FF : 0x44FFFFFF));
+        button.setBackgroundTintList(ColorStateList.valueOf(focused ? (lightTheme ? 0x1A2196F3 : 0x552196F3) : colors.control));
+        button.setStrokeColor(ColorStateList.valueOf(focused ? 0xFF0077FF : colors.lineStrong));
         button.setStrokeWidth(ResUtil.dp2px(focused ? 2 : 1));
     }
 

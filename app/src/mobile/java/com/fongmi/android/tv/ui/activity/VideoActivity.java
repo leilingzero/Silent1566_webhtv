@@ -779,14 +779,13 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void updateEpisodeViewportHeight() {
-        if (mBinding.episode.getVisibility() != View.VISIBLE || mBinding.getRoot().getHeight() <= 0) return;
-        int[] root = new int[2];
-        int[] episode = new int[2];
-        mBinding.getRoot().getLocationOnScreen(root);
-        mBinding.episode.getLocationOnScreen(episode);
-        int available = root[1] + mBinding.getRoot().getHeight() - mEpisodeBottomInset - ResUtil.dp2px(8) - episode[1];
+        if (mBinding.episode.getVisibility() != View.VISIBLE) return;
         int limit = ResUtil.isPad() || ResUtil.isLand(this) ? ResUtil.dp2px(328) : ResUtil.dp2px(280);
-        int height = Math.min(limit, available);
+        // The episode list lives inside a scroll container, so capping it by the
+        // current on-screen remainder can collapse the viewport to a single row
+        // when the section is laid out below the fold. Keep a stable cap here
+        // and let the parent page handle the rest of the scrolling.
+        int height = limit;
         if (isTmdbEpisodeCardMode()) height = Math.max(height, getEpisodeCardMinHeight());
         if (height <= 0 || height == mEpisodeMaxHeight) return;
         mEpisodeMaxHeight = height;
