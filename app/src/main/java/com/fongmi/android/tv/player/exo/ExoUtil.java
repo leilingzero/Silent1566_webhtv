@@ -57,6 +57,13 @@ import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.FfmpegVideoRenderer;
 
 public class ExoUtil {
 
+    private static final int ENHANCED_MIN_BUFFER_MS = 30_000;
+    private static final int ENHANCED_MAX_BUFFER_MS = 120_000;
+    private static final int ENHANCED_BUFFER_FOR_PLAYBACK_MS = 1_500;
+    private static final int ENHANCED_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 5_000;
+    private static final int ENHANCED_TARGET_BUFFER_BYTES = 256 * 1024 * 1024;
+    private static final long ENHANCED_LATE_THRESHOLD_TO_DROP_INPUT_US = 5_000L;
+
     public static void setPlayerView(PlayerView view) {
         view.setRender(PlayerSetting.getRender());
         view.getSubtitleView().setStyle(getCaptionStyle());
@@ -67,7 +74,9 @@ public class ExoUtil {
     }
 
     public static ExoPlayer buildPlayer(int decode, Player.Listener listener) {
-        ExoPlayer player = new ExoPlayer.Builder(App.get()).setLoadControl(buildLoadControl()).setTrackSelector(buildTrackSelector()).setRenderersFactory(buildPlaybackRenderersFactory(decode)).setMediaSourceFactory(buildMediaSourceFactory()).build();
+        ExoPlayer.Builder builder = new ExoPlayer.Builder(App.get()).setTrackSelector(buildTrackSelector()).setRenderersFactory(buildPlaybackRenderersFactory(decode)).setMediaSourceFactory(buildMediaSourceFactory());
+        builder.setLoadControl(PlayerSetting.isExoEnhanced() ? buildEnhancedLoadControl() : buildLoadControl());
+        ExoPlayer player = builder.build();
         PlaybackAnalyticsListener.reset();
         player.addAnalyticsListener(new PlaybackAnalyticsListener());
         if (BuildConfig.DEBUG) player.addAnalyticsListener(new EventLogger());
@@ -105,7 +114,7 @@ public class ExoUtil {
     }
 
     private static int getRenderMode(int decode) {
-        if (decode == PlayerEngine.HARD && PlayerSetting.isExo4KCompat()) return DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
+        if (decode == PlayerEngine.HARD && PlayerSetting.isExoEnhanced()) return DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
         return decode == PlayerEngine.HARD ? DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER;
     }
 
@@ -133,6 +142,14 @@ public class ExoUtil {
         return trackSelector;
     }
 
+    private static DefaultLoadControl buildEnhancedLoadControl() {
+        return new DefaultLoadControl.Builder()
+                .setBufferDurationsMs(ENHANCED_MIN_BUFFER_MS, ENHANCED_MAX_BUFFER_MS, ENHANCED_BUFFER_FOR_PLAYBACK_MS, ENHANCED_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
+                .setTargetBufferBytes(ENHANCED_TARGET_BUFFER_BYTES)
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .build();
+    }
+
     private static RenderersFactory buildPlaybackRenderersFactory(int decode) {
         return buildRenderersFactory(getRenderMode(decode), PlayerSetting.isAudioPrefer(), PlayerSetting.isVideoPrefer());
     }
@@ -148,7 +165,10 @@ public class ExoUtil {
                 return ExoUtil.buildAudioSink(context, enableFloatOutput, enableAudioOutputPlaybackParams);
             }
         };
-        if (PlayerSetting.isExo4KCompat()) factory.forceEnableMediaCodecAsynchronousQueueing();
+        if (PlayerSetting.isExoEnhanced()) {
+            factory.forceEnableMediaCodecAsynchronousQueueing();
+            factory.experimentalSetLateThresholdToDropDecoderInputUs(ENHANCED_LATE_THRESHOLD_TO_DROP_INPUT_US);
+        }
         return factory.setEnableDecoderFallback(true).setExtensionRendererMode(renderMode);
     }
 

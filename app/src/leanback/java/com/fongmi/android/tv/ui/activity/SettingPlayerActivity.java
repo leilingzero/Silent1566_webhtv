@@ -14,12 +14,14 @@ import com.fongmi.android.tv.impl.BufferListener;
 import com.fongmi.android.tv.impl.SpeedListener;
 import com.fongmi.android.tv.impl.UaListener;
 import com.fongmi.android.tv.player.lut.LutSetting;
+import com.fongmi.android.tv.setting.PlayerButtonSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.PreloadSetting;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.ui.base.BaseActivity;
 import com.fongmi.android.tv.ui.dialog.BufferDialog;
 import com.fongmi.android.tv.ui.dialog.LutDialog;
+import com.fongmi.android.tv.ui.dialog.PlayerButtonConfigDialog;
 import com.fongmi.android.tv.ui.dialog.SpeedDialog;
 import com.fongmi.android.tv.ui.dialog.UaDialog;
 import com.fongmi.android.tv.utils.FileUtil;
@@ -62,7 +64,8 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.uaText.setText(Setting.getUa());
         mBinding.aacText.setText(getSwitch(PlayerSetting.isPreferAAC()));
         mBinding.tunnelText.setText(getSwitch(PlayerSetting.isTunnel()));
-        mBinding.exo4kCompatText.setText(getSwitch(PlayerSetting.isExo4KCompat()));
+        mBinding.exo4kCompatText.setText(getSwitch(PlayerSetting.isExoEnhanced()));
+        setPlayerButtonsText();
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
         mBinding.speedText.setText(format.format(PlayerSetting.getSpeed()));
         mBinding.bufferText.setText(String.valueOf(PlayerSetting.getBuffer()));
@@ -92,6 +95,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.scale.setOnClickListener(this::setScale);
         mBinding.lut.setOnClickListener(this::onLut);
         mBinding.osd.setOnClickListener(this::onOsd);
+        mBinding.playerButtons.setOnClickListener(view -> PlayerButtonConfigDialog.show(this, this::setPlayerButtonsText));
         mBinding.speed.setOnClickListener(this::onSpeed);
         mBinding.buffer.setOnClickListener(this::onBuffer);
         mBinding.bufferBytes.setOnClickListener(this::setBufferBytes);
@@ -157,6 +161,10 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
             setOsdChecked(checked);
             mBinding.osdText.setText(getOsdText(osd));
         }).setMultiChoiceItems(osd, checked, (dialog, which, isChecked) -> checked[which] = isChecked).show();
+    }
+
+    private void setPlayerButtonsText() {
+        mBinding.playerButtonsText.setText(getString(R.string.player_button_config_summary, PlayerButtonSetting.getVisibleCount(), PlayerButtonSetting.getTotalCount()));
     }
 
     private boolean[] getOsdChecked() {
@@ -263,7 +271,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         int index = (PlayerSetting.getRender() + 1) % render.length;
         mBinding.renderText.setText(render[index]);
         PlayerSetting.putRender(index);
-        mBinding.exo4kCompatText.setText(getSwitch(PlayerSetting.isExo4KCompat()));
+        mBinding.exo4kCompatText.setText(getSwitch(PlayerSetting.isExoEnhanced()));
     }
 
     private void setTunnel(View view) {
@@ -273,8 +281,8 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
     }
 
     private void setExo4KCompat(View view) {
-        PlayerSetting.putExo4KCompat(!PlayerSetting.isExo4KCompat());
-        mBinding.exo4kCompatText.setText(getSwitch(PlayerSetting.isExo4KCompat()));
+        PlayerSetting.putExoEnhanced(!PlayerSetting.isExoEnhanced());
+        mBinding.exo4kCompatText.setText(getSwitch(PlayerSetting.isExoEnhanced()));
         mBinding.renderText.setText(render[PlayerSetting.getRender()]);
     }
 
