@@ -456,7 +456,7 @@ public class PlayerManager implements ParseCallback {
     }
 
     public void stop() {
-        player.stop();
+        engine.stop();
         stopParse();
     }
 

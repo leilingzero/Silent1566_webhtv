@@ -304,7 +304,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     public static void collect(Activity activity, String key, String id, String name, String pic, String wallPic) {
-        start(activity, key, id, name, pic, null, true, null, wallPic);
+        start(activity, key, id, name, pic, null, true, (TmdbItem) null, wallPic);
     }
 
     private static boolean canOpenLegacyTmdbDetail(String key) {
@@ -358,11 +358,23 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     public static void start(Activity activity, String key, String id, String name, String pic, String mark, String wallPic) {
-        start(activity, key, id, name, pic, mark, false, null, wallPic);
+        start(activity, key, id, name, pic, mark, false, (TmdbItem) null, wallPic);
+    }
+
+    public static void start(Activity activity, String key, String id, String name, String pic, String mark, String wallPic, String content) {
+        start(activity, key, id, name, pic, mark, false, wallPic, content);
     }
 
     public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect) {
-        start(activity, key, id, name, pic, mark, collect, null);
+        start(activity, key, id, name, pic, mark, collect, (TmdbItem) null);
+    }
+
+    public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, String wallPic) {
+        start(activity, key, id, name, pic, mark, collect, (TmdbItem) null, wallPic, null);
+    }
+
+    public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, String wallPic, String content) {
+        start(activity, key, id, name, pic, mark, collect, (TmdbItem) null, wallPic, content);
     }
 
     public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, com.fongmi.android.tv.bean.TmdbItem tmdbItem) {
@@ -370,6 +382,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, com.fongmi.android.tv.bean.TmdbItem tmdbItem, String wallPic) {
+        start(activity, key, id, name, pic, mark, collect, tmdbItem, wallPic, null);
+    }
+
+    public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, com.fongmi.android.tv.bean.TmdbItem tmdbItem, String wallPic, String content) {
         ImgUtil.preload(activity, pic);
         if (Setting.isPlaybackArtworkWall() && !TextUtils.isEmpty(wallPic) && !TextUtils.equals(wallPic, pic)) ImgUtil.preload(activity, wallPic);
         if (dispatchToContentHandler(activity, key, id, name, pic, mark)) return;
@@ -385,6 +401,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         intent.putExtra("name", name);
         intent.putExtra("pic", pic);
         intent.putExtra("wallPic", wallPic);
+        intent.putExtra("content", content);
         intent.putExtra("key", key);
         intent.putExtra("id", id);
         activity.startActivity(intent);
@@ -469,6 +486,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private String getWallPic() {
         return Objects.toString(getIntent().getStringExtra("wallPic"), "");
+    }
+
+    private String getContent() {
+        return Objects.toString(getIntent().getStringExtra("content"), "");
     }
 
     private String getMark() {
@@ -1038,6 +1059,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mVod = item;
         item.checkPic(getPic());
         item.checkName(getName());
+        item.checkContent(getContent());
         boolean tmdbMode = hasTmdbDetailAdapter();
         mTmdbFallbackToNative = false;
         mTmdbContentLoaded = false;
@@ -1075,7 +1097,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             mBinding.name.setText(item.getName());
             mBinding.name.setVisibility(View.VISIBLE);
         }
-
         mFlagAdapter.addAll(item.getFlags());
         App.removeCallbacks(mR4);
         checkHistory(item);
@@ -2380,6 +2401,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private void showInitialPreview() {
         mBinding.progressLayout.showContent();
         mBinding.name.setText(getName());
+        setText(mBinding.content, 0, getContent());
         if (!getPic().isEmpty()) setArtwork(getPic());
         else if (!getWallPic().isEmpty()) setContextWall(getWallPic());
     }
@@ -2813,15 +2835,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void updateVideoHeight() {
         if (isLand() || isFullscreen() || isInPictureInPictureMode()) return;
-        int videoWidth = player().getVideoWidth();
-        int videoHeight = player().getVideoHeight();
-        int targetHeight = mFrameHeight;
-        if (videoWidth > 0 && videoHeight > videoWidth) {
-            int calculated = (int) (ResUtil.getScreenWidth() * ((float) videoHeight / videoWidth));
-            targetHeight = Math.min(ResUtil.getScreenHeight() / 2, Math.max(mFrameHeight, calculated));
-        }
-        if (targetHeight <= 0 || mFrameParams.height == targetHeight) return;
-        mFrameParams.height = targetHeight;
+        if (mFrameHeight <= 0 || mFrameParams.height == mFrameHeight) return;
+        mFrameParams.height = mFrameHeight;
         mBinding.video.setLayoutParams(mFrameParams);
     }
 
