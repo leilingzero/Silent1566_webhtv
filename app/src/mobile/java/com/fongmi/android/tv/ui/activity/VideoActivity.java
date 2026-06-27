@@ -124,6 +124,7 @@ import com.fongmi.android.tv.ui.helper.EpisodeRangePolicy;
 import com.fongmi.android.tv.ui.helper.TmdbNavigation;
 import com.fongmi.android.tv.utils.AudioUtil;
 import com.fongmi.android.tv.utils.Clock;
+import com.fongmi.android.tv.utils.EpisodeTitleCompact;
 import com.fongmi.android.tv.utils.FileChooser;
 import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.EpisodeTitleFormatter;
@@ -304,7 +305,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     public static void collect(Activity activity, String key, String id, String name, String pic, String wallPic) {
-        start(activity, key, id, name, pic, null, true, null, wallPic);
+        start(activity, key, id, name, pic, null, true, (TmdbItem) null, wallPic);
     }
 
     private static boolean canOpenLegacyTmdbDetail(String key) {
@@ -358,11 +359,23 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     public static void start(Activity activity, String key, String id, String name, String pic, String mark, String wallPic) {
-        start(activity, key, id, name, pic, mark, false, null, wallPic);
+        start(activity, key, id, name, pic, mark, false, (TmdbItem) null, wallPic);
+    }
+
+    public static void start(Activity activity, String key, String id, String name, String pic, String mark, String wallPic, String content) {
+        start(activity, key, id, name, pic, mark, false, wallPic, content);
     }
 
     public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect) {
-        start(activity, key, id, name, pic, mark, collect, null);
+        start(activity, key, id, name, pic, mark, collect, (TmdbItem) null);
+    }
+
+    public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, String wallPic) {
+        start(activity, key, id, name, pic, mark, collect, (TmdbItem) null, wallPic, null);
+    }
+
+    public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, String wallPic, String content) {
+        start(activity, key, id, name, pic, mark, collect, (TmdbItem) null, wallPic, content);
     }
 
     public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, com.fongmi.android.tv.bean.TmdbItem tmdbItem) {
@@ -370,6 +383,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, com.fongmi.android.tv.bean.TmdbItem tmdbItem, String wallPic) {
+        start(activity, key, id, name, pic, mark, collect, tmdbItem, wallPic, null);
+    }
+
+    public static void start(Activity activity, String key, String id, String name, String pic, String mark, boolean collect, com.fongmi.android.tv.bean.TmdbItem tmdbItem, String wallPic, String content) {
         ImgUtil.preload(activity, pic);
         if (Setting.isPlaybackArtworkWall() && !TextUtils.isEmpty(wallPic) && !TextUtils.equals(wallPic, pic)) ImgUtil.preload(activity, wallPic);
         if (dispatchToContentHandler(activity, key, id, name, pic, mark)) return;
@@ -385,6 +402,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         intent.putExtra("name", name);
         intent.putExtra("pic", pic);
         intent.putExtra("wallPic", wallPic);
+        intent.putExtra("content", content);
         intent.putExtra("key", key);
         intent.putExtra("id", id);
         activity.startActivity(intent);
@@ -469,6 +487,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private String getWallPic() {
         return Objects.toString(getIntent().getStringExtra("wallPic"), "");
+    }
+
+    private String getContent() {
+        return Objects.toString(getIntent().getStringExtra("content"), "");
     }
 
     private String getMark() {
@@ -657,7 +679,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mPiP = new PiP();
         checkDanmakuImg();
         setRecyclerView();
-        mOsd = new PlayerOsdController(mBinding.osd.getRoot(), mBinding.osd.osdTopLeft, mBinding.osd.osdTopRight, mBinding.osd.osdBottomLeft, mBinding.osd.osdBottomRight, mBinding.osd.osdMiniProgress, new PlayerOsdController.Source() {
+        mOsd = new PlayerOsdController(mBinding.osd.getRoot(), mBinding.osd.osdTopLeft, mBinding.osd.osdTopRight, mBinding.osd.osdBottomLeft, mBinding.osd.osdBottomRight, mBinding.osd.osdDiagnostics, mBinding.osd.osdMiniProgress, new PlayerOsdController.Source() {
             @Override
             public PlayerManager getPlayer() {
                 return service() == null ? null : player();
@@ -671,7 +693,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         setVideoView();
         setViewModel();
         initTmdbMode();
-
+        setShortDisplay();
         if (hasInitialPreview()) showInitialPreview();
         else {
             android.util.Log.d("VideoActivity", "onCreate - 调用 showProgress()");
@@ -687,6 +709,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     protected void initEvent() {
         mBinding.name.setOnClickListener(view -> onName());
         mBinding.more.setOnClickListener(view -> onMore());
+        mBinding.shortDisplay.setOnClickListener(view -> onShortDisplay());
         mBinding.search.setOnClickListener(view -> onSearch());
         mBinding.castAction.setOnClickListener(view -> onCast());
         mBinding.settingAction.setOnClickListener(view -> onSetting());
@@ -702,6 +725,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.info.setOnClickListener(view -> onInfo());
         mBinding.control.keep.setOnClickListener(view -> onKeep());
         mBinding.control.display.setOnClickListener(view -> onDisplay());
+        mBinding.control.osdDiagnostics.setOnClickListener(view -> onOsdDiagnostics());
         mBinding.control.play.setOnClickListener(view -> checkPlay());
         mBinding.control.next.setOnClickListener(view -> checkNext());
         mBinding.control.prev.setOnClickListener(view -> checkPrev());
@@ -758,14 +782,13 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void updateEpisodeViewportHeight() {
-        if (mBinding.episode.getVisibility() != View.VISIBLE || mBinding.getRoot().getHeight() <= 0) return;
-        int[] root = new int[2];
-        int[] episode = new int[2];
-        mBinding.getRoot().getLocationOnScreen(root);
-        mBinding.episode.getLocationOnScreen(episode);
-        int available = root[1] + mBinding.getRoot().getHeight() - mEpisodeBottomInset - ResUtil.dp2px(8) - episode[1];
+        if (mBinding.episode.getVisibility() != View.VISIBLE) return;
         int limit = ResUtil.isPad() || ResUtil.isLand(this) ? ResUtil.dp2px(328) : ResUtil.dp2px(280);
-        int height = Math.min(limit, available);
+        // The episode list lives inside a scroll container, so capping it by the
+        // current on-screen remainder can collapse the viewport to a single row
+        // when the section is laid out below the fold. Keep a stable cap here
+        // and let the parent page handle the rest of the scrolling.
+        int height = limit;
         if (isTmdbEpisodeCardMode()) height = Math.max(height, getEpisodeCardMinHeight());
         if (height <= 0 || height == mEpisodeMaxHeight) return;
         mEpisodeMaxHeight = height;
@@ -1038,6 +1061,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mVod = item;
         item.checkPic(getPic());
         item.checkName(getName());
+        item.checkContent(getContent());
         boolean tmdbMode = hasTmdbDetailAdapter();
         mTmdbFallbackToNative = false;
         mTmdbContentLoaded = false;
@@ -1075,7 +1099,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             mBinding.name.setText(item.getName());
             mBinding.name.setVisibility(View.VISIBLE);
         }
-
         mFlagAdapter.addAll(item.getFlags());
         App.removeCallbacks(mR4);
         checkHistory(item);
@@ -1535,8 +1558,9 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private int getEpisodeSpan(List<Episode> items, boolean useTmdbCard) {
         if (useTmdbCard) return getEpisodeGridSpanCount();
+        EpisodeTitleCompact.apply(items);
         int maxLen = 0;
-        for (Episode item : items) maxLen = Math.max(maxLen, item.getDesc().concat(item.getName()).length());
+        for (Episode item : items) maxLen = Math.max(maxLen, item.getDisplayName().length());
         if (maxLen >= 12) return PlayerSetting.getEpisodeColumn();
         int ideal = maxLen >= 10 ? 130 : maxLen >= 7 ? 104 : 80;
         int width = mBinding.episode.getWidth() > 0 ? mBinding.episode.getWidth() : ResUtil.getScreenWidth(this) - ResUtil.dp2px(32);
@@ -1652,6 +1676,16 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void onSearch() {
         onName();
+    }
+
+    private void onShortDisplay() {
+        Setting.putCompactEpisodeTitle(!Setting.isCompactEpisodeTitle());
+        setShortDisplay();
+        refreshEpisodeTitles();
+    }
+
+    private void setShortDisplay() {
+        mBinding.shortDisplay.setSelected(Setting.isCompactEpisodeTitle());
     }
 
     private void onMore() {
@@ -2159,6 +2193,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.right.rotate.setVisibility(isFullscreen() && !isLock() ? View.VISIBLE : View.GONE);
         mBinding.control.fullscreen.setVisibility(isLock() || shortDrama ? View.GONE : View.VISIBLE);
         mBinding.control.keep.setVisibility(mHistory == null ? View.GONE : View.VISIBLE);
+        mBinding.control.osdDiagnostics.setVisibility(PlayerSetting.isOsdDiagnostics() && !player().isEmpty() ? View.VISIBLE : View.GONE);
+        mBinding.control.osdDiagnostics.setAlpha(mOsd != null && mOsd.isDiagnosticsVisible() ? 1f : 0.72f);
         mBinding.control.parse.setVisibility(isFullscreen() && isUseParse() ? View.VISIBLE : View.GONE);
         mBinding.control.action.getRoot().setVisibility(isFullscreen() ? View.VISIBLE : View.GONE);
         mBinding.control.right.lock.setVisibility(isFullscreen() ? View.VISIBLE : View.GONE);
@@ -2185,6 +2221,12 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void setOsdSuppressed(boolean suppressed) {
         if (mOsd != null) mOsd.setSuppressed(suppressed);
+    }
+
+    private void onOsdDiagnostics() {
+        if (mOsd == null) return;
+        mOsd.toggleDiagnostics();
+        hideControl();
     }
 
     private void hideWidgetOverlay() {
@@ -2380,6 +2422,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private void showInitialPreview() {
         mBinding.progressLayout.showContent();
         mBinding.name.setText(getName());
+        setText(mBinding.content, 0, getContent());
         if (!getPic().isEmpty()) setArtwork(getPic());
         else if (!getWallPic().isEmpty()) setContextWall(getWallPic());
     }
@@ -2813,15 +2856,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void updateVideoHeight() {
         if (isLand() || isFullscreen() || isInPictureInPictureMode()) return;
-        int videoWidth = player().getVideoWidth();
-        int videoHeight = player().getVideoHeight();
-        int targetHeight = mFrameHeight;
-        if (videoWidth > 0 && videoHeight > videoWidth) {
-            int calculated = (int) (ResUtil.getScreenWidth() * ((float) videoHeight / videoWidth));
-            targetHeight = Math.min(ResUtil.getScreenHeight() / 2, Math.max(mFrameHeight, calculated));
-        }
-        if (targetHeight <= 0 || mFrameParams.height == targetHeight) return;
-        mFrameParams.height = targetHeight;
+        if (mFrameHeight <= 0 || mFrameParams.height == mFrameHeight) return;
+        mFrameParams.height = mFrameHeight;
         mBinding.video.setLayoutParams(mFrameParams);
     }
 
@@ -3722,6 +3758,15 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     @Override
     public void onEpisodeColumn(int column) {
         PlayerSetting.putEpisodeColumn(column);
+        refreshEpisodeTitles();
+    }
+
+    @Override
+    public void onCompactEpisodeTitleChanged() {
+        refreshEpisodeTitles();
+    }
+
+    private void refreshEpisodeTitles() {
         if (mEpisodeAdapter == null) return;
         if ((mFlagAdapter == null || mFlagAdapter.isEmpty()) && !shouldUseEpisodeRangePaging(getCurrentEpisodeItems())) {
             updateEpisodeLayout(mEpisodeAdapter.getItems());

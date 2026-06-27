@@ -7,6 +7,7 @@
     <string name="live_pass">Pass</string>
     <string name="live_refresh">Refresh</string>
     <string name="live_line">Line <xliff:g name="name">%s</xliff:g></string>
+    <string name="live_control_source">Live source</string>
     <string name="live_no_epg">00:00 - 23:59 暂无节目信息</string>
 
     <!-- Detail -->
@@ -54,6 +55,7 @@
     <string name="play_config">Config</string>
     <string name="play_cast">Cast</string>
     <string name="play_change">Change</string>
+    <string name="play_short_display">Short</string>
     <string name="play_search">Search</string>
     <string name="play_fullscreen">Fullscreen</string>
     <string name="play_exit_fullscreen">Exit full</string>
@@ -792,6 +794,7 @@
     <string name="player">Player</string>
     <string name="player_default">Default player</string>
     <string name="player_render">Render</string>
+    <string name="player_exo_4k_compat">Exo 4K compatibility</string>
     <string name="player_kernel">Player engine</string>
     <string name="player_scale">Scale</string>
     <string name="player_lut">LUT color</string>
@@ -809,6 +812,12 @@
     <string name="player_buffer_bytes">Buffer size</string>
     <string name="player_back_buffer">Back buffer</string>
     <string name="player_cache">Playback cache</string>
+    <string name="player_preload">Preload</string>
+    <string name="player_preload_threads">Preload threads</string>
+    <string name="player_preload_threads_value">%1$d threads</string>
+    <string name="player_preload_size">Preload size</string>
+    <string name="player_preload_time">Preload time</string>
+    <string name="player_preload_time_value">%1$d seconds</string>
     <string name="player_auto_change">Auto source change</string>
     <string name="player_speed">Press speed</string>
     <string name="player_ua">User-Agent</string>
@@ -865,6 +874,9 @@
     <string name="search_hot_tv">TV</string>
     <string name="search_hot_movie">Movie</string>
     <string name="search_hot_variety">Variety</string>
+    <string name="search_loading">Searching...</string>
+    <string name="search_progress">(%1$d/%2$d)</string>
+    <string name="search_no_result">No results</string>
 
     <!-- Dialog -->
     <string name="dialog_edit">Edit</string>
@@ -1002,9 +1014,9 @@
         <item>60s</item>
     </string-array>
     <string-array name="select_play_cache">
-        <item>Off</item>
-        <item>100MB</item>
-        <item>500MB</item>
+        <item>128MB</item>
+        <item>256MB</item>
+        <item>512MB</item>
         <item>1GB</item>
         <item>2GB</item>
     </string-array>
@@ -1060,7 +1072,9 @@
     <string-array name="select_ui_scale">
         <item>Follow system</item>
         <item>Standard</item>
+        <item>Mild compact</item>
         <item>Compact</item>
+        <item>More compact</item>
         <item>Smaller</item>
     </string-array>
 
@@ -1089,6 +1103,7 @@
         <item>@string/display_progress</item>
         <item>@string/display_mini</item>
         <item>@string/display_title</item>
+        <item>Playback params</item>
     </string-array>
 
     <string-array name="select_track">
