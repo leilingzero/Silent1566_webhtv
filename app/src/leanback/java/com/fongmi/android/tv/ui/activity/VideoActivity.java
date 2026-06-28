@@ -105,6 +105,7 @@ import com.fongmi.android.tv.ui.helper.EpisodeDisplayPolicy;
 import com.fongmi.android.tv.ui.helper.TmdbNavigation;
 import com.fongmi.android.tv.utils.AudioUtil;
 import com.fongmi.android.tv.utils.Clock;
+import com.fongmi.android.tv.utils.EpisodeTitleFormatter;
 import com.fongmi.android.tv.utils.FileChooser;
 import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.KeyUtil;
@@ -540,11 +541,30 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     private String getOsdTitle() {
-        String name = getName();
-        if (mEpisodeAdapter == null || mEpisodeAdapter.getItemCount() == 0) return name;
-        String episode = Objects.toString(getEpisode().getName(), "");
-        if (TextUtils.isEmpty(episode) || TextUtils.equals(name, episode)) return name;
-        return TextUtils.isEmpty(name) ? episode : name + " " + episode;
+        return EpisodeTitleFormatter.buildPlaybackTitle(getPlaybackName(), getCurrentEpisodeTitle());
+    }
+
+    private String getPlaybackName() {
+        CharSequence name = mBinding == null || mBinding.name == null ? "" : mBinding.name.getText();
+        return TextUtils.isEmpty(name) ? getName() : name.toString();
+    }
+
+    private String getCurrentEpisodeTitle() {
+        return mEpisodeAdapter == null || mEpisodeAdapter.getItemCount() == 0 ? "" : getEpisodeTitle(getEpisode());
+    }
+
+    private String getEpisodeTitle(Episode episode) {
+        return episode == null ? "" : EpisodeAdapter.getTitle(episode);
+    }
+
+    private CharSequence getPlaybackControlTitle() {
+        return getPlaybackControlTitle(mEpisodeAdapter == null || mEpisodeAdapter.getItemCount() == 0 ? null : getEpisode());
+    }
+
+    private CharSequence getPlaybackControlTitle(Episode episode) {
+        String name = getPlaybackName();
+        String title = getEpisodeTitle(episode);
+        return TextUtils.isEmpty(title) || TextUtils.equals(name, title) ? name : getString(R.string.detail_title, name, title);
     }
 
     private int getScale() {
@@ -1049,6 +1069,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         item.checkName(getName());
         boolean loadTmdbDetail = shouldLoadTmdbDetail();
         item.checkContent(getContent());
+        if (isIntentTmdbPlayback()) com.fongmi.android.tv.utils.TmdbEpisodeSorter.sort(item);
+        applyTmdbEpisodeTitles(item);
         setTmdbRematchVisible(loadTmdbDetail);
         // 非 TMDB：立即揭开，全部内容一次性出现；TMDB：继续停在 loading，等富集完成再揭开
         if (!loadTmdbDetail) mBinding.progressLayout.showContent();
@@ -1224,8 +1246,42 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         };
     }
 
+    private void applyTmdbEpisodeTitles(Vod vod) {
+        Map<Integer, String> titles = getEpisodeTitles();
+        if (vod == null || titles.isEmpty() || vod.getFlags() == null) return;
+        for (Flag flag : vod.getFlags()) {
+            for (Episode episode : flag.getEpisodes()) {
+                String title = titles.get(episode.getNumber());
+                if (TextUtils.isEmpty(title)) continue;
+                String displayName = EpisodeTitleFormatter.withSourceFileSize(episode.getName(), EpisodeTitleFormatter.formatTmdbTitle(episode.getNumber(), title), Setting.isTmdbEpisodeFileSize());
+                if (TextUtils.equals(episode.getDisplayName(), displayName)) continue;
+                episode.setDisplayName(displayName);
+            }
+        }
+    }
+
+    private Map<Integer, String> getEpisodeTitles() {
+        Map<Integer, String> titles = new HashMap<>();
+        ArrayList<String> values = getIntent().getStringArrayListExtra("tmdb_episode_titles");
+        if (values == null) return titles;
+        for (String value : values) {
+            String[] parts = value.split("\t", 2);
+            if (parts.length != 2 || TextUtils.isEmpty(parts[1])) continue;
+            try {
+                titles.put(Integer.parseInt(parts[0]), parts[1]);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return titles;
+    }
+
+    private boolean isIntentTmdbPlayback() {
+        ArrayList<String> values = getIntent().getStringArrayListExtra("tmdb_episode_titles");
+        return values != null && !values.isEmpty();
+    }
+
     private void getPlayer(Flag flag, Episode episode) {
-        mBinding.widget.title.setText(getString(R.string.detail_title, mBinding.name.getText(), episode.getName()));
+        mBinding.widget.title.setText(getPlaybackControlTitle(episode));
         playerStartTime = System.currentTimeMillis();
         beginPlayHealth();
         SpiderDebug.log("video-flow", "player start key=%s flag=%s episode=%s url=%s", getKey(), flag.getFlag(), episode.getName(), episode.getUrl());
@@ -2493,8 +2549,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         if (id) mHistory.replace(getHistoryKey());
         if (name) mHistory.setVodName(item.getName());
         if (name) mBinding.name.setText(item.getName());
-        if (name) mBinding.widget.title.setText(item.getName());
         updateFlag(getFlag(), item.getFlags());
+        mBinding.widget.title.setText(getPlaybackControlTitle());
         if (pic) setArtwork(item.getPic());
         if (pic || name) setMetadata();
         if (pic || name) syncHistory();
