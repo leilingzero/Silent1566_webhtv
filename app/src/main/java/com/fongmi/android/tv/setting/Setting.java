@@ -990,7 +990,7 @@ public class Setting {
     }
 
     public static boolean isSubtitleAutoMatchEnabled() {
-        return Prefers.getBoolean("subtitle_auto_match", true);
+        return Prefers.getBoolean("subtitle_auto_match", false);
     }
 
     public static void putSubtitleAutoMatchEnabled(boolean enabled) {
@@ -1014,7 +1014,7 @@ public class Setting {
     }
 
     public static boolean isAutoSkipIntroOutro() {
-        return Prefers.getBoolean("auto_skip_intro_outro", true);
+        return Prefers.getBoolean("auto_skip_intro_outro", false);
     }
 
     public static void putAutoSkipIntroOutro(boolean enabled) {
