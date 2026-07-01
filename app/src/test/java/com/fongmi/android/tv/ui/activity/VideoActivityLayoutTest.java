@@ -120,6 +120,19 @@ public class VideoActivityLayoutTest {
     }
 
     @Test
+    public void mobileVideoKeepsParseRowHiddenInEmbeddedPlayerWhenPlaybackStarts() throws Exception {
+        Path sourcePath = findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"));
+        String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
+        int method = source.indexOf("private void setPlayer(Result result)");
+        int setUseParse = source.indexOf("setUseParse(result.shouldUseParse());", method);
+        int guardedParseRow = source.indexOf("mBinding.control.parse.setVisibility(isFullscreen() && isUseParse() ? View.VISIBLE : View.GONE);", setUseParse);
+        int startPlayer = source.indexOf("startPlayer(getHistoryKey(), result, isUseParse()", setUseParse);
+
+        assertTrue(sourcePath + " is missing setPlayer", method >= 0);
+        assertTrue("parse row must only become visible in fullscreen during playback start", guardedParseRow > setUseParse && guardedParseRow < startPlayer);
+    }
+
+    @Test
     public void mobileVideoTmdbMovableViewsKeepQualityBetweenFlagsAndEpisodes() throws Exception {
         Path sourcePath = findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"));
         String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
