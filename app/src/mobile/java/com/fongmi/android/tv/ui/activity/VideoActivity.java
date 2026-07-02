@@ -978,6 +978,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.action.reset.setText(ResUtil.getStringArray(R.array.select_reset)[Setting.getReset()]);
         setupActionButtons();
         mBinding.video.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> mPiP.update(this, view));
+        // 初始化时隐藏底部控制栏，避免竖屏小窗时显示
+        mBinding.control.action.getRoot().setVisibility(View.GONE);
         setPlayer();
     }
 
@@ -2351,7 +2353,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.osdDiagnostics.setVisibility(PlayerSetting.isOsdDiagnostics() && !player().isEmpty() ? View.VISIBLE : View.GONE);
         mBinding.control.osdDiagnostics.setAlpha(mOsd != null && mOsd.isDiagnosticsVisible() ? 1f : 0.72f);
         mBinding.control.parse.setVisibility(isFullscreen() && isUseParse() ? View.VISIBLE : View.GONE);
-        mBinding.control.action.getRoot().setVisibility(isFullscreen() || isFusionPlayerActionsDocked() ? View.VISIBLE : View.GONE);
+        // 竖屏模式下隐藏底部控制栏（EXO、硬解等选项），避免界面拥挤
+        // 使用屏幕方向判断：只在横屏全屏时显示，竖屏全屏时隐藏
+        boolean isLandscapeFullscreen = isFullscreen() && ResUtil.isLand(this);
+        mBinding.control.action.getRoot().setVisibility(isLandscapeFullscreen || isFusionPlayerActionsDocked() ? View.VISIBLE : View.GONE);
         mBinding.control.right.lock.setVisibility(isFullscreen() ? View.VISIBLE : View.GONE);
         mBinding.control.info.setVisibility(player().isEmpty() ? View.GONE : View.VISIBLE);
         mBinding.control.cast.setVisibility(isFullscreen() && mHistory != null && !player().isEmpty() ? View.VISIBLE : View.GONE);
