@@ -3060,6 +3060,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                 revealTmdbDetail();
                 loadNativePersonalRecommendations(event.getVod());
                 if (shouldShowAutoTmdbMatchDialog(event.getVod())) showManualTmdbMatchDialog();
+            } else {
+                // TMDB 数据已加载完成：揭开 TMDB 增强 UI
+                // 修复：手动匹配后界面没有更新的问题
+                finishTmdbDetail();
             }
             // TMDB 加载已结束：若仍卡在剧集加载指示器（电影无集数、未匹配、获取失败等），揭开原版选集列表
             finishEpisodeLoading();
