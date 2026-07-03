@@ -208,6 +208,10 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private final Set<String> brokenSources = new HashSet<>();
     private final List<String> detailTmdbPhotos = new ArrayList<>();
     private final List<String> tmdbEpisodePhotos = new ArrayList<>();
+    private Map<Episode, Integer> episodeIndexCache = new IdentityHashMap<>();
+    private List<Episode> episodeIndexSource;
+    private List<Episode> explicitSeasonSource;
+    private boolean explicitSeasonCache;
     private final List<String> backdropSlideItems = new ArrayList<>();
     private final Set<String> backdropSlideFailures = new HashSet<>();
     private final Runnable backdropSlideNext = this::loadNextBackdropSlide;
@@ -443,6 +447,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         mHistory = null;
         selectedFlag = null;
         selectedEpisode = null;
+        clearEpisodeRenderCaches();
         resetEpisodeRange();
         inlineStarted = false;
         detailPlayerActive = false;
@@ -1694,9 +1699,11 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         brokenSources.clear();
         sourceVodName = loadedVod.getName();
         TmdbEpisodeSorter.sort(vod);
+        clearEpisodeRenderCaches();
         applyTmdbBundle(bundle);
         if (bundle != null) saveTmdbMatch(bundle.item());
         enrichVod();
+        clearEpisodeRenderCaches();
         initHistory();
         bindPage();
         focusInlinePlayerPanel();
@@ -3325,10 +3332,21 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private Map<Episode, Integer> episodeIndices(List<Episode> episodes) {
+        if (episodes == episodeIndexSource) return episodeIndexCache;
+        episodeIndexSource = episodes;
         Map<Episode, Integer> indices = new IdentityHashMap<>();
-        if (episodes == null) return indices;
-        for (int i = 0; i < episodes.size(); i++) indices.put(episodes.get(i), i);
-        return indices;
+        if (episodes != null) {
+            for (int i = 0; i < episodes.size(); i++) indices.put(episodes.get(i), i);
+        }
+        episodeIndexCache = indices;
+        return episodeIndexCache;
+    }
+
+    private void clearEpisodeRenderCaches() {
+        episodeIndexSource = null;
+        episodeIndexCache = new IdentityHashMap<>();
+        explicitSeasonSource = null;
+        explicitSeasonCache = false;
     }
 
     private void renderSeasonSelection() {
@@ -3466,9 +3484,16 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private boolean hasExplicitSeasonNumbers(List<Episode> episodes) {
+        if (episodes == explicitSeasonSource) return explicitSeasonCache;
+        explicitSeasonSource = episodes;
+        explicitSeasonCache = false;
         if (episodes == null) return false;
-        for (Episode episode : episodes) if (sourceSeasonNumber(episode) > 0) return true;
-        return false;
+        for (Episode episode : episodes) {
+            if (sourceSeasonNumber(episode) <= 0) continue;
+            explicitSeasonCache = true;
+            break;
+        }
+        return explicitSeasonCache;
     }
 
     private int sourceEpisodeNumber(Episode episode) {

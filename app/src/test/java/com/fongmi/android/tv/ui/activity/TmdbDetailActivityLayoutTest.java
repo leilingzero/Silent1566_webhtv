@@ -298,6 +298,32 @@ public class TmdbDetailActivityLayoutTest {
     }
 
     @Test
+    public void switchingLongStandaloneEpisodeFlagsReusesEpisodeRenderCaches() throws Exception {
+        Path sourcePath = findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "TmdbDetailActivity.java"));
+        String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
+        int indices = source.indexOf("private Map<Episode, Integer> episodeIndices(List<Episode> episodes)");
+        int clear = source.indexOf("private void clearEpisodeRenderCaches()", indices);
+        int explicit = source.indexOf("private boolean hasExplicitSeasonNumbers(List<Episode> episodes)");
+        int next = source.indexOf("private int sourceEpisodeNumber", explicit);
+
+        assertTrue(sourcePath + " is missing episode render cache methods", indices >= 0 && clear > indices && explicit > clear && next > explicit);
+        String indexBody = source.substring(indices, clear);
+        String explicitBody = source.substring(explicit, next);
+        assertTrue("long episode flag switches should reuse the identity index for the same episode list",
+                indexBody.contains("if (episodes == episodeIndexSource) return episodeIndexCache;")
+                        && indexBody.contains("episodeIndexSource = episodes;")
+                        && indexBody.contains("episodeIndexCache = indices;"));
+        assertTrue("long episode flag switches should not rescan every title for explicit season numbers on each episode",
+                explicitBody.contains("if (episodes == explicitSeasonSource) return explicitSeasonCache;")
+                        && explicitBody.contains("explicitSeasonSource = episodes;")
+                        && explicitBody.contains("explicitSeasonCache = true;"));
+        assertTrue("new detail loads must clear cached episode-list render state",
+                source.contains("clearEpisodeRenderCaches();\n        resetEpisodeRange();")
+                        && source.contains("TmdbEpisodeSorter.sort(vod);\n        clearEpisodeRenderCaches();")
+                        && source.contains("enrichVod();\n        clearEpisodeRenderCaches();"));
+    }
+
+    @Test
     public void compactCinemaDetailKeepsPosterVisible() throws Exception {
         Path sourcePath = findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "TmdbDetailActivity.java"));
         String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
