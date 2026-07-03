@@ -1411,6 +1411,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mViewModel.playerContent(getKey(), flag.getFlag(), episode.getUrl());
         mBinding.control.title.setSelected(true);
         updateHistory(episode);
+        // 重置 TMDB 内容加载标志，确保每次播放都能正确显示加载动画
+        mTmdbContentLoaded = false;
         showProgress();
     }
 
@@ -2930,10 +2932,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     protected void onStateChanged(int state) {
         switch (state) {
             case Player.STATE_BUFFERING:
-                // TMDB 模式下，如果内容已经加载完成，不再显示 spinner
-                if (!shouldUseTmdbDetailLayout() || !isTmdbContentLoaded()) {
-                    showProgress();
-                }
+                // 播放器缓冲时始终显示加载动画（转圈+流量），不管 TMDB 内容是否加载完成
+                showProgress();
                 break;
             case Player.STATE_READY:
                 recordPlayHealth(true, "");
@@ -3325,14 +3325,15 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mTmdbHeaderView.setOnImagesLoadedListener(new com.fongmi.android.tv.ui.custom.TmdbHeaderView.OnImagesLoadedListener() {
             @Override
             public void onImagesLoaded() {
-                // TMDB 内容加载完成，设置标记并隐藏进度条
-                android.util.Log.d("VideoActivity", "TMDB 内容加载完成，隐藏进度条");
+                // TMDB 内容加载完成，设置标记
+                android.util.Log.d("VideoActivity", "TMDB 内容加载完成");
                 // 原生增强/原生样式：在内容加载后隐藏独立 backdrop，让全屏动态背景透出
                 if (shouldUseTmdbBackdropSurface() && mTmdbHeaderView != null) {
                     mTmdbHeaderView.hideNativeHeroBackdrop();
                 }
                 mTmdbContentLoaded = true;
-                hideProgress();
+                // 不在这里隐藏进度条，让播放器状态来控制
+                // 只有当播放器已经准备就绪（STATE_READY）时才隐藏进度条
             }
         });
 
