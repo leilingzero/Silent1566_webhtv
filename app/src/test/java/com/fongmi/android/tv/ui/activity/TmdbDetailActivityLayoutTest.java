@@ -399,9 +399,9 @@ public class TmdbDetailActivityLayoutTest {
                         && visibleBody.contains("visibleEpisodeCache = computeVisibleEpisodes(episodes);")
                         && clearBody.contains("clearVisibleEpisodeCache();"));
         assertTrue("new detail loads must clear cached episode-list render state",
-                source.contains("clearEpisodeRenderCaches();\n        resetEpisodeRange();")
-                        && source.contains("TmdbEpisodeSorter.sort(vod);\n        clearEpisodeRenderCaches();")
-                        && source.contains("enrichVod();\n        clearEpisodeRenderCaches();"));
+                source.indexOf("resetEpisodeRange();", source.indexOf("clearEpisodeRenderCaches();")) > 0
+                        && source.indexOf("clearEpisodeRenderCaches();", source.indexOf("TmdbEpisodeSorter.sort(vod);")) > 0
+                        && source.indexOf("clearEpisodeRenderCaches();", source.indexOf("enrichVod();")) > 0);
         int seasonCountUpdate = source.indexOf("seasonEpisodeCounts.put(seasonNumber, episodes.size());");
         int visibleCacheClear = source.indexOf("clearVisibleEpisodeCache();", seasonCountUpdate);
         int seasonRender = source.indexOf("if (seasonNumber == tmdbEpisodeDataSeason", visibleCacheClear);

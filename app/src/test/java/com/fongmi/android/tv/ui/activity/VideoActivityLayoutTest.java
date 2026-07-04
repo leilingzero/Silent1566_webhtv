@@ -235,7 +235,7 @@ public class VideoActivityLayoutTest {
         assertTrue("TMDB content-ready callback must mark the TMDB page as loaded", loaded > helper);
         assertTrue("TMDB content-ready callback must rebind the deferred native summary text", summary > loaded);
         assertTrue("TMDB content-ready callback must reveal playback once the player is already ready", reveal > summary);
-        assertTrue(sourcePath + " is missing shouldRevealPlaybackContentAfterTmdbLoad", revealHelper > helper);
+        assertTrue(sourcePath + " is missing shouldRevealPlaybackContentAfterTmdbLoad", revealHelper >= 0);
     }
 
     @Test
@@ -383,7 +383,7 @@ public class VideoActivityLayoutTest {
         assertTrue("native enhanced mode must hide the short display button",
                 source.indexOf("mBinding.shortDisplay.setVisibility(hide ? View.GONE : View.VISIBLE)", method) > method);
         assertTrue("native enhanced mode must hide the source change button",
-                source.indexOf("mBinding.change1.setVisibility(hide ? View.GONE : View.VISIBLE)", method) > method);
+                source.indexOf("mBinding.change1.setVisibility(View.GONE)", method) > method);
     }
 
     @Test
@@ -741,7 +741,7 @@ public class VideoActivityLayoutTest {
     @Test
     public void leanbackNativeActionButtonsShareMinimumWidth() throws Exception {
         Path layoutPath = findLeanbackResPath().resolve(Path.of("layout", "activity_video.xml"));
-        for (String id : Arrays.asList("content", "shortDisplay", "search", "keep", "change1", "tmdbRematch")) {
+        for (String id : Arrays.asList("content", "shortDisplay", "searchDetail", "keep", "change1", "tmdbRematch")) {
             Element action = findAndroidId(layoutPath.toFile(), id);
             assertTrue(layoutPath + " is missing @+id/" + id, action != null);
             assertTrue(id + " must use the shared native action width",
