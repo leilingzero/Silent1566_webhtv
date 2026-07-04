@@ -191,6 +191,9 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
     protected void onSurfaceAttached() {
     }
 
+    protected void onSeekStarted() {
+    }
+
     protected void applyResizeMode(int resizeMode) {
         PlayerView view = getExoView();
         view.setResizeMode(resizeMode);
@@ -211,6 +214,7 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
     }
 
     protected void seekTo(long time) {
+        onSeekStarted();
         mController.seekTo(player().getPosition() + time);
         mController.play();
     }
@@ -272,6 +276,7 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
         try {
             mController = mControllerFuture.get();
             getSeekView().setPlayer(mController);
+            getSeekView().setSeekListener(this::onSeekStarted);
             mController.addListener(this);
         } catch (Exception ignored) {
         }

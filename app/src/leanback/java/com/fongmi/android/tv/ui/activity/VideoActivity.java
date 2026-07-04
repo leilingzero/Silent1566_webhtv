@@ -190,6 +190,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private boolean episodeGridMode;
     private Runnable mR1;
     private Runnable mR2;
+    private Runnable mSeekProgressFallback;
     private Runnable mTmdbDetailTimeout;
     private boolean mTmdbDetailLoading;
     private boolean mTmdbDetailRevealed;
@@ -690,6 +691,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mR1 = this::hideControl;
         mR2 = this::updateFocus;
         mR4 = this::showEmpty;
+        mSeekProgressFallback = this::hideSeekProgressIfReady;
         SpiderDebug.log("video-flow", "initView state ready cost=%dms", System.currentTimeMillis() - start);
         checkCast();
         SpiderDebug.log("video-flow", "initView preview ready cost=%dms", System.currentTimeMillis() - start);
@@ -2494,12 +2496,14 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     private void showProgress() {
+        if (mSeekProgressFallback != null) App.removeCallbacks(mSeekProgressFallback);
         mBinding.progress.getRoot().setVisibility(View.VISIBLE);
         hideCenter();
         hideError();
     }
 
     private void hideProgress() {
+        if (mSeekProgressFallback != null) App.removeCallbacks(mSeekProgressFallback);
         mBinding.progress.getRoot().setVisibility(View.GONE);
     }
 
@@ -3051,7 +3055,6 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     @Override
     protected void onPlayingChanged(boolean isPlaying) {
         if (isPlaying) {
-            showPlaybackContent();
             hideCenter();
         } else if (isPaused()) {
             if (isFullscreen()) showInfo();
@@ -3068,6 +3071,18 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     @Override
     protected void onSurfaceAttached() {
         applyResizeMode(getScale());
+    }
+
+    private void hideSeekProgressIfReady() {
+        if (service() == null || player() == null || player().getPlaybackState() != Player.STATE_READY) return;
+        showPlaybackContent();
+    }
+
+    @Override
+    protected void onSeekStarted() {
+        showProgress();
+        App.removeCallbacks(mSeekProgressFallback);
+        App.post(mSeekProgressFallback, 500);
     }
 
     @Override
@@ -3090,7 +3105,6 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         position = mHistory.getPosition();
         duration = mHistory.getDuration();
         android.util.Log.d("VideoActivity", "onTimeChanged: position=" + position + " duration=" + duration + " canSave=" + mHistory.canSave());
-        if (position > 0 || player().isPlaying()) showPlaybackContent();
         PlaybackEventCollector.get().onProgress(mHistory, player());
         if (mHistory.canSave() && mHistory.canSync()) syncHistory();
         if (applyAutoIntroSkip()) return;
@@ -4691,7 +4705,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         stopBackdropAutoScroll();
         dismissQuickSearchDialog();
         RefreshEvent.keep();
-        App.removeCallbacks(mR1, mR2, mR4);
+        App.removeCallbacks(mR1, mR2, mR4, mSeekProgressFallback);
         App.removeCallbacks(mTmdbDetailTimeout);
         if (mOsd != null) mOsd.release();
         mViewModel.getResult().removeObserver(mObserveDetail);

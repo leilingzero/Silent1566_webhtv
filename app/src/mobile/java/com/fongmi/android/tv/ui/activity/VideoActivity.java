@@ -232,6 +232,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private Runnable mR2;
     private Runnable mR3;
     private Runnable mR4;
+    private Runnable mSeekProgressFallback;
     private Clock mClock;
     private PiP mPiP;
     private String mContextWallUrl;
@@ -725,6 +726,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mR2 = this::setTraffic;
         mR3 = this::setOrient;
         mR4 = this::showEmpty;
+        mSeekProgressFallback = this::hideSeekProgressIfReady;
         mPiP = new PiP();
         checkDanmakuImg();
         setRecyclerView();
@@ -1438,8 +1440,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mViewModel.playerContent(getKey(), flag.getFlag(), episode.getUrl());
         mBinding.control.title.setSelected(true);
         updateHistory(episode);
-        // 重置 TMDB 内容加载标志，确保每次播放都能正确显示加载动画
-        mTmdbContentLoaded = false;
         showProgress();
     }
 
@@ -2336,31 +2336,31 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void showProgress() {
+        if (mSeekProgressFallback != null) App.removeCallbacks(mSeekProgressFallback);
         mBinding.progress.getRoot().setVisibility(View.VISIBLE);
-        if (!mBinding.progressLayout.isContent()) mBinding.progressLayout.hideContent();
+        if (shouldLoadTmdbDetail() && !mTmdbContentLoaded) mBinding.progressLayout.showProgress();
+        else if (!mBinding.progressLayout.isContent()) mBinding.progressLayout.hideContent();
         App.post(mR2, 0);
         hideError();
     }
 
     private void hideProgress() {
+        if (mSeekProgressFallback != null) App.removeCallbacks(mSeekProgressFallback);
         mBinding.progress.getRoot().setVisibility(View.GONE);
         App.removeCallbacks(mR2);
         Traffic.reset();
     }
 
-    private void showPlaybackContent() {
+    private void showDetailContent() {
         if (!canRevealPlaybackContent()) return;
         View child = mBinding.scroll.getChildAt(0);
         if (child != null) child.setVisibility(View.VISIBLE);
         if (!mBinding.progressLayout.isContent()) mBinding.progressLayout.showContent();
-        hideProgress();
     }
 
-    private boolean shouldRevealPlaybackContentAfterTmdbLoad() {
-        return service() != null
-                && player() != null
-                && !player().isEmpty()
-                && (player().getPlaybackState() == Player.STATE_READY || player().isPlaying() || player().getPosition() > 0);
+    private void showPlaybackContent() {
+        hideProgress();
+        showDetailContent();
     }
 
     private void onTmdbContentReady() {
@@ -2370,7 +2370,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         }
         mTmdbContentLoaded = true;
         if (mVod != null) setText(mVod);
-        if (shouldRevealPlaybackContentAfterTmdbLoad()) showPlaybackContent();
+        showDetailContent();
     }
 
     private void showError(String text) {
@@ -2876,9 +2876,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
                 mTmdbFallbackToNative = false;
                 hideNativePersonalRecommendations();
                 moveFlagAndEpisodeToTmdb();
-                mBinding.progressLayout.showContent();
                 mTmdbHeaderView.bind(mTmdbUIAdapter);
-                hideProgress();
                 styleTmdbSourceInFlagTitle();
                 applyTmdbPlaybackControlColors();
                 applyFusionPlayerBelowSpacing();
@@ -3018,7 +3016,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     @Override
     protected void onPlayingChanged(boolean isPlaying) {
         if (isPlaying) {
-            showPlaybackContent();
             mPiP.update(this, true);
             mBinding.control.play.setImageResource(androidx.media3.ui.R.drawable.exo_icon_pause);
         } else if (isPaused()) {
@@ -3041,6 +3038,18 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         applyResizeMode(getScale());
     }
 
+    private void hideSeekProgressIfReady() {
+        if (service() == null || player() == null || player().getPlaybackState() != Player.STATE_READY) return;
+        showPlaybackContent();
+    }
+
+    @Override
+    protected void onSeekStarted() {
+        showProgress();
+        App.removeCallbacks(mSeekProgressFallback);
+        App.post(mSeekProgressFallback, 500);
+    }
+
     @Override
     public void onSubtitleClick() {
         SubtitleDialog.create().view(mBinding.exo.getSubtitleView()).search(() -> SubtitleManualSearchDialog.show(this, subtitlePlaybackSession, this)).show(this);
@@ -3061,7 +3070,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         position = mHistory.getPosition();
         duration = mHistory.getDuration();
         android.util.Log.d("VideoActivity", "onTimeChanged: position=" + position + " duration=" + duration + " canSave=" + mHistory.canSave());
-        if (position > 0 || player().isPlaying()) showPlaybackContent();
         PlaybackEventCollector.get().onProgress(mHistory, player());
         if (mHistory.canSave() && mHistory.canSync()) syncHistory();
         if (applyAutoIntroSkip()) return;
@@ -4508,7 +4516,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         Timer.get().reset();
         DanmakuApi.cancel();
         RefreshEvent.keep();
-        App.removeCallbacks(mR1, mR2, mR3, mR4);
+        App.removeCallbacks(mR1, mR2, mR3, mR4, mSeekProgressFallback);
         if (mOsd != null) mOsd.release();
         mViewModel.getResult().removeObserver(mObserveDetail);
         mViewModel.getPlayer().removeObserver(mObservePlayer);
