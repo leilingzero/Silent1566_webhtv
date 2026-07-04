@@ -1392,7 +1392,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     private boolean redirectToContentHandler(Result result) {
         boolean handled = com.fongmi.android.tv.content.ContentDispatcher.dispatchResult(this, getHistoryKey(), getKey(), getFlag().getFlag(), mHistory.getVodName(), mHistory.getVodPic(), getFlag().getEpisodes(), getSelectedEpisodePosition(getFlag().getEpisodes()), result, getSite().getTimeout());
-        if (handled) finish();
+        if (handled) {
+            stopPlayback();
+            finish();
+        }
         return handled;
     }
 

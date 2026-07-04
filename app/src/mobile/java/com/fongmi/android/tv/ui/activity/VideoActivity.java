@@ -1484,7 +1484,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private boolean redirectToAudioIfNeeded(Result result) {
         List<Episode> episodes = getCurrentEpisodeItems();
         boolean handled = com.fongmi.android.tv.content.ContentDispatcher.dispatchResult(this, getHistoryKey(), getKey(), getFlag().getFlag(), mHistory.getVodName(), mHistory.getVodPic(), episodes, getSelectedEpisodePosition(episodes), result, getSite().getTimeout());
-        if (handled) finish();
+        if (handled) {
+            stopPlayback();
+            finish();
+        }
         return handled;
     }
 
@@ -2928,7 +2931,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
         @Override
         public void onStop() {
-            finish();
+            finishVideoPlayback();
         }
 
         @Override
@@ -4445,7 +4448,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         } else {
             showDanmaku();
             restoreContextWall();
-            if (isStop()) finish();
+            // PiP 窗口点 × 关闭时，主动停止播放，避免声音继续（与正常退出保持一致）
+            if (isStop()) {
+                saveHistory(true);
+                finishPlayback();
+            }
         }
     }
 

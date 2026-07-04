@@ -872,13 +872,12 @@ public class TmdbHeaderView {
         chip.setText(platform + " ★ " + value);
         chip.setTag(color);
         chip.setTextColor(backdropSurfaceMode ? COLOR_FUSION_BACKDROP_TEXT : resolveRatingChipTextColor(color, lightSurface));
-        chip.setTextSize(15);
+        chip.setTextSize(12);
         chip.setTypeface(null, android.graphics.Typeface.BOLD);
         chip.setSingleLine(true);
         chip.setIncludeFontPadding(false);
-        chip.setMinWidth(ResUtil.dp2px(84));
         chip.setGravity(android.view.Gravity.CENTER);
-        chip.setPadding(ResUtil.dp2px(10), ResUtil.dp2px(8), ResUtil.dp2px(10), ResUtil.dp2px(8));
+        chip.setPadding(ResUtil.dp2px(8), ResUtil.dp2px(5), ResUtil.dp2px(8), ResUtil.dp2px(5));
 
         // 设置圆角背景
         android.graphics.drawable.GradientDrawable background = new android.graphics.drawable.GradientDrawable();
