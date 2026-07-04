@@ -49,6 +49,9 @@ public class Setting {
     public static final int TMDB_MATCH_STRICT_DIALOG = 2;
     public static final int TMDB_MATCH_SMART_DIALOG = 3;
     public static final int DETAIL_INTERACTION_SYSTEM = 0;
+    public static final int INTRO_SKIP_OFF = 0;
+    public static final int INTRO_SKIP_AUTO = 1;
+    public static final int INTRO_SKIP_CONFIRM = 2;
     public static final int DETAIL_INTERACTION_ORIGINAL = 1;
     public static final int DETAIL_THEME_CURRENT = DETAIL_STYLE_NATIVE;
     public static final int LANGUAGE_FOLLOW_SYSTEM = 0;
@@ -1098,12 +1101,24 @@ public class Setting {
         Prefers.put("subtitle_assrt_token", token);
     }
 
+    public static int getIntroSkipMode() {
+        return Prefers.getInt("intro_skip_mode", INTRO_SKIP_OFF);
+    }
+
+    public static void putIntroSkipMode(int mode) {
+        Prefers.put("intro_skip_mode", mode);
+    }
+
     public static boolean isAutoSkipIntroOutro() {
-        return Prefers.getBoolean("auto_skip_intro_outro", false);
+        return getIntroSkipMode() == INTRO_SKIP_AUTO;
+    }
+
+    public static boolean isIntroSkipEnabled() {
+        return getIntroSkipMode() != INTRO_SKIP_OFF;
     }
 
     public static void putAutoSkipIntroOutro(boolean enabled) {
-        Prefers.put("auto_skip_intro_outro", enabled);
+        putIntroSkipMode(enabled ? INTRO_SKIP_AUTO : INTRO_SKIP_OFF);
     }
 
     public static int getSearchUi() {

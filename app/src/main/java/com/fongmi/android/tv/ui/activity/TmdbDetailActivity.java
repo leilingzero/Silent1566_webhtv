@@ -1093,7 +1093,6 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.headerTitle.setTextColor(colors.primary);
         binding.title.setTextColor(colors.primary);
         binding.subtitle.setTextColor(colors.secondary);
-        styleSourceValue();
         binding.overview.setTextColor(colors.body);
         binding.overviewToggle.setTextColor(colors.accent);
         binding.episodeEmpty.setTextColor(colors.secondary);
@@ -1102,6 +1101,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         if (isCinemaMode()) binding.personalAiReason.setShadowLayer(3f, 0f, 1.5f, 0xCC000000);
         else binding.personalAiReason.setShadowLayer(0f, 0f, 0f, 0x00000000);
         tintTmdbSectionTitles(colors);
+        styleSourceValue();
         binding.themeModeTop.setText(themeModeLabel());
         binding.themeMode.setText(themeModeLabel());
         binding.themeModeDetail.setText(themeModeLabel());
@@ -1142,6 +1142,8 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
 
     private void tintTmdbSectionTitles(ThemeColors colors) {
         TextView[] titles = {
+                binding.flagTitle,
+                binding.episodeTitle,
                 binding.episodePhotoTitle,
                 binding.castTitle,
                 binding.creatorTitle,
@@ -1202,6 +1204,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.contentPanel.setRadius(ResUtil.dp2px(20));
         binding.tmdbPanel.setRadius(ResUtil.dp2px(20));
         setPaddingDp(binding.contentInner, 16, 16, 16, 16);
+        setTmdbPanelInnerPaddingDp(16, 16, 16, 16);
         binding.heroRow.setOrientation(LinearLayout.HORIZONTAL);
         binding.heroRow.setGravity(0);
         binding.posterCard.setVisibility(View.VISIBLE);
@@ -1245,6 +1248,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.contentPanel.setRadius(0);
         binding.tmdbPanel.setRadius(0);
         setPaddingDp(binding.contentInner, 0, 0, 0, 0);
+        setTmdbPanelInnerPaddingDp(0, 0, 0, 0);
         binding.heroRow.setOrientation(LinearLayout.HORIZONTAL);
         binding.heroRow.setGravity(compact ? 0 : android.view.Gravity.CENTER_VERTICAL);
         binding.posterCard.setVisibility(compact ? View.VISIBLE : View.GONE);
@@ -1267,12 +1271,12 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.overview.setTextSize(compact ? 14.5f : 16f);
         binding.overview.setLineSpacing(ResUtil.dp2px(compact ? 4 : 3), 1f);
         setHeightDp(binding.episodePhotoList, compact ? 128 : 160);
-        setHeightDp(binding.castList, compact ? 112 : 112);
-        setHeightDp(binding.creatorList, compact ? 112 : 112);
-        setHeightDp(binding.relatedList, compact ? 184 : 190);
-        setHeightDp(binding.personalTmdbList, compact ? 184 : 190);
-        setHeightDp(binding.personalDoubanList, compact ? 184 : 190);
-        setHeightDp(binding.personalAiList, compact ? 184 : 190);
+        setHeightDp(binding.castList, compact ? 90 : 90);
+        setHeightDp(binding.creatorList, compact ? 90 : 90);
+        setHeightDp(binding.relatedList, compact ? 160 : 160);
+        setHeightDp(binding.personalTmdbList, compact ? 160 : 160);
+        setHeightDp(binding.personalDoubanList, compact ? 160 : 160);
+        setHeightDp(binding.personalAiList, compact ? 160 : 160);
         if (castAdapter != null) castAdapter.setCinema(true);
         if (creatorAdapter != null) creatorAdapter.setCinema(true);
         if (relatedAdapter != null) relatedAdapter.setCinema(true);
@@ -1287,6 +1291,13 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
 
     private void setPaddingDp(View view, int left, int top, int right, int bottom) {
         view.setPadding(ResUtil.dp2px(left), ResUtil.dp2px(top), ResUtil.dp2px(right), ResUtil.dp2px(bottom));
+    }
+
+    private void setTmdbPanelInnerPaddingDp(int left, int top, int right, int bottom) {
+        if (binding.tmdbPanel.getChildCount() > 0) {
+            View inner = binding.tmdbPanel.getChildAt(0);
+            setPaddingDp(inner, left, top, right, bottom);
+        }
     }
 
     private void setMarginsDp(View view, int left, int top, int right, int bottom) {
@@ -2869,7 +2880,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private boolean shouldShowFullOverview() {
-        return isCinemaMode();
+        return false; // 所有主题（包括光影剧幕）默认折叠简介，需手动展开
     }
 
     private boolean isOverviewOverflowing() {

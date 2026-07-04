@@ -162,6 +162,10 @@
     <string name="setting_personal_recommendation">Personal recommendations</string>
     <string name="setting_tmdb_episode_file_size">Keep file size in TMDB episodes</string>
     <string name="setting_auto_skip_intro_outro">Auto skip intro/outro</string>
+    <string name="intro_skip_confirm_title">Skip intro/outro?</string>
+    <string name="intro_skip_confirm_intro">Skip intro</string>
+    <string name="intro_skip_confirm_recap">Skip recap</string>
+    <string name="intro_skip_confirm_outro">Skip outro</string>
     <string name="personal_recommendation_confirm_title">Enable personal recommendations</string>
     <string name="personal_recommendation_confirm_message">Personal recommendations read movie and show titles from local viewing history, and may send the current title and history titles to TMDB or Douban as search keywords to build related lists.\n\nPlayback URLs, account information, source configuration, and playback progress are not sent. You can turn this off at any time.</string>
     <string name="setting_search_thread">Search threads</string>
@@ -1135,6 +1139,12 @@
         <item>Smart</item>
         <item>Strict + dialog</item>
         <item>Smart + dialog</item>
+    </string-array>
+
+    <string-array name="select_auto_skip_intro_outro">
+        <item>Off</item>
+        <item>Auto skip</item>
+        <item>Ask to confirm</item>
     </string-array>
 
     <string-array name="select_site_column">
