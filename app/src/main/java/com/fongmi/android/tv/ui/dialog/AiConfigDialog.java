@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.Filter;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
@@ -178,7 +179,7 @@ public class AiConfigDialog {
         wireDpadFocus(protocol, titleExtraction, endpoint, null, null);
         wireDpadFocus(endpoint, protocol, apiKey, null, null);
         wireDpadFocus(apiKey, endpoint, model, null, null);
-        wireDpadFocus(model, apiKey, userAgent, null, fetchModels);
+        wireDropdownDpadFocus(model, apiKey, userAgent, null, fetchModels);
         wireDpadFocus(fetchModels, apiKey, userAgent, model, null);
         wireDpadFocus(userAgent, model, prompt, null, null);
         wireDpadFocus(prompt, userAgent, test, null, null);
@@ -191,6 +192,25 @@ public class AiConfigDialog {
         if (view == null) return;
         view.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && up != null) return requestFocus(up);
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && down != null) return requestFocus(down);
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && left != null) return requestFocus(left);
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && right != null) return requestFocus(right);
+            return false;
+        });
+    }
+
+    private static void wireDropdownDpadFocus(AutoCompleteTextView view, View up, View down, View left, View right) {
+        if (view == null) return;
+        view.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            // 下拉弹窗展开时，把上下键与确认键交给列表处理，以便遥控器选择选项。
+            if (view.isPopupShowing()) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                        || keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                    return false;
+                }
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP && up != null) return requestFocus(up);
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && down != null) return requestFocus(down);
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && left != null) return requestFocus(left);
@@ -221,27 +241,43 @@ public class AiConfigDialog {
     }
 
     private void setupProtocolDropdown() {
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(adapterContext(), android.R.layout.simple_dropdown_item_1line, protocolLabels());
-        protocol.setAdapter(adapter);
-        protocol.setThreshold(0);
-        protocol.setOnClickListener(v -> protocol.showDropDown());
-        protocol.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) protocol.showDropDown(); });
-        protocol.setOnItemClickListener((parent, view, position, id) -> {
-            String oldProtocol = config.getProtocol();
-            String selected = position >= 0 && position < PROTOCOL_VALUES.length ? PROTOCOL_VALUES[position] : AiConfig.DEFAULT_PROTOCOL;
-            config.setProtocol(selected);
-            endpoint.setHint(AiConfig.defaultEndpoint(selected));
-            String currentEndpoint = text(endpoint);
-            if (currentEndpoint.isEmpty() || currentEndpoint.equals(AiConfig.defaultEndpoint(oldProtocol))) {
-                endpoint.setText(AiConfig.defaultEndpoint(selected));
+        protocol.setFocusable(true);
+        protocol.setKeyListener(null);
+        protocol.setOnClickListener(v -> showProtocolPicker());
+        protocol.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) showProtocolPicker(); });
+    }
+
+    private void showProtocolPicker() {
+        String[] labels = protocolLabels();
+        int currentIndex = -1;
+        for (int i = 0; i < PROTOCOL_VALUES.length; i++) {
+            if (PROTOCOL_VALUES[i].equals(config.getProtocol())) {
+                currentIndex = i;
+                break;
             }
-        });
+        }
+        new MaterialAlertDialogBuilder(dialogContext, R.style.Theme_WebHTV_LightDialog)
+                .setTitle(R.string.dialog_ai_protocol_label)
+                .setSingleChoiceItems(labels, currentIndex, (dialog, which) -> {
+                    String oldProtocol = config.getProtocol();
+                    String selected = which >= 0 && which < PROTOCOL_VALUES.length ? PROTOCOL_VALUES[which] : AiConfig.DEFAULT_PROTOCOL;
+                    config.setProtocol(selected);
+                    protocol.setText(labels[which]);
+                    endpoint.setHint(AiConfig.defaultEndpoint(selected));
+                    String currentEndpoint = text(endpoint);
+                    if (currentEndpoint.isEmpty() || currentEndpoint.equals(AiConfig.defaultEndpoint(oldProtocol))) {
+                        endpoint.setText(AiConfig.defaultEndpoint(selected));
+                    }
+                    dialog.dismiss();
+                })
+                .setNegativeButton(R.string.dialog_negative, null)
+                .show();
     }
 
     private void setupModelDropdown(List<AiCompletionClient.ModelInfo> models) {
         List<String> values = new ArrayList<>();
         for (AiCompletionClient.ModelInfo item : models) if (!item.getId().isEmpty()) values.add(item.getId());
-        model.setAdapter(new ArrayAdapter<>(adapterContext(), android.R.layout.simple_dropdown_item_1line, values));
+        model.setAdapter(new NoFilterAdapter(adapterContext(), values));
         model.setThreshold(0);
         model.setOnClickListener(v -> {
             if (model.getAdapter() != null && model.getAdapter().getCount() > 0) model.showDropDown();
@@ -341,5 +377,39 @@ public class AiConfigDialog {
     private static String formatElapsed(long millis) {
         if (millis < 1000) return millis + "ms";
         return String.format(java.util.Locale.US, "%.1fs", millis / 1000f);
+    }
+
+    /**
+     * 不过滤的 ArrayAdapter，用于解决 AutoCompleteTextView 重新打开时因过滤导致列表空白的问题。
+     */
+    private static class NoFilterAdapter extends ArrayAdapter<String> {
+        private final List<String> items;
+
+        public NoFilterAdapter(Context context, List<String> items) {
+            super(context, android.R.layout.simple_dropdown_item_1line, items);
+            this.items = new ArrayList<>(items);
+        }
+
+        @Override
+        public Filter getFilter() {
+            return new Filter() {
+                @Override
+                protected FilterResults performFiltering(CharSequence constraint) {
+                    FilterResults results = new FilterResults();
+                    results.values = items;
+                    results.count = items.size();
+                    return results;
+                }
+
+                @Override
+                protected void publishResults(CharSequence constraint, FilterResults results) {
+                    if (results.count > 0) {
+                        notifyDataSetChanged();
+                    } else {
+                        notifyDataSetInvalidated();
+                    }
+                }
+            };
+        }
     }
 }
