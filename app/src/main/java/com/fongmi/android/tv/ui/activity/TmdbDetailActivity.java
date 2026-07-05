@@ -1441,12 +1441,12 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.playerPanel.setStrokeWidth(ResUtil.dp2px(focused ? FOCUS_STROKE_DP : CHIP_STROKE_DP));
     }
 
-    private boolean isLeanbackFusionPlayerPanel() {
-        return Util.isLeanback() && isFusionMode();
+    private boolean isLeanbackInlinePlayerPanel() {
+        return Util.isLeanback() && (isFusionMode() || isPlayerMode());
     }
 
     private void setupPlayerPanelFocusLayer() {
-        if (!isLeanbackFusionPlayerPanel()) return;
+        if (!isLeanbackInlinePlayerPanel()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) binding.playerPanel.setDefaultFocusHighlightEnabled(false);
         binding.playerPanel.setRippleColor(ColorStateList.valueOf(0x00000000));
     }
@@ -5645,6 +5645,11 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private void backFromInlineFullscreen() {
+        if (Util.isLeanback() && isPlayerMode()) {
+            exitInlineFullscreen();
+            closeDetailFullscreenPlayer();
+            return;
+        }
         exitInlineFullscreen();
     }
 
@@ -6828,8 +6833,8 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (handleInlineKey(event)) return true;
         if (handleDetailEpisodeNavigationKey(event)) return true;
+        if (handleInlineKey(event)) return true;
         return super.dispatchKeyEvent(event);
     }
 

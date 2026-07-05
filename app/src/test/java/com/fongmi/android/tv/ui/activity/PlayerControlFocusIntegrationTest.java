@@ -42,10 +42,15 @@ public class PlayerControlFocusIntegrationTest {
                 activity.contains("import com.fongmi.android.tv.ui.helper.PlayerControlFocusHelper;"));
         assertTrue("inline controls must restore focus even when callers pass focus=false",
                 show >= 0 && focusDefault > show);
-        assertTrue("inline player controls must handle keys before detail navigation can consume a lost focus",
-                dispatch >= 0 && inlineDispatch > dispatch && detailDispatch > inlineDispatch);
+        assertTrue("detail episode navigation must keep DPAD focus before inline controls restore lost focus",
+                dispatch >= 0 && detailDispatch > dispatch && inlineDispatch > detailDispatch);
         assertTrue("visible inline controls must trap direction/enter focus inside the overlay",
                 handle >= 0 && focusTrap > handle);
+        assertTrue("leanback detail-player fullscreen must disable the system focus highlight that covers video when controls hide",
+                activity.contains("private boolean isLeanbackInlinePlayerPanel()")
+                        && activity.contains("return Util.isLeanback() && (isFusionMode() || isPlayerMode());")
+                        && activity.contains("binding.playerPanel.setDefaultFocusHighlightEnabled(false);")
+                        && activity.contains("binding.playerPanel.setRippleColor(ColorStateList.valueOf(0x00000000));"));
     }
 
     @Test

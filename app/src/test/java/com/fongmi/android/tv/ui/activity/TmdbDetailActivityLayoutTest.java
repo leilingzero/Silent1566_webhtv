@@ -1225,8 +1225,10 @@ public class TmdbDetailActivityLayoutTest {
                         && activity.contains("binding.playerPanel.post(() -> {")
                         && activity.contains("binding.root.postDelayed(() -> {")
                         && activity.contains("}, 180);"));
-        assertTrue("native enhanced/detail-player fullscreen Back must use the same embedded-player exit path as fusion",
-                backFromFullscreenBody.contains("exitInlineFullscreen();")
+        assertTrue("leanback detail-player fullscreen Back must close playback back to the detail page, while fusion keeps embedded exit",
+                backFromFullscreenBody.contains("if (Util.isLeanback() && isPlayerMode())")
+                        && backFromFullscreenBody.indexOf("exitInlineFullscreen();") < backFromFullscreenBody.indexOf("closeDetailFullscreenPlayer();")
+                        && backFromFullscreenBody.contains("return;")
                         && !backFromFullscreenBody.contains("finishPlaybackToHome();")
                         && !backFromFullscreenBody.contains("Setting.isPlayBackToDetail()")
                         && focusBody.contains("if (!isInlinePlayerMode()) return;")
