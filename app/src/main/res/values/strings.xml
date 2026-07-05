@@ -1263,6 +1263,9 @@
     <string name="dialog_tmdb_api_host_hint">For example https://api.tmdb.org</string>
     <string name="dialog_tmdb_image_host_label">Image host</string>
     <string name="dialog_tmdb_image_host_hint">For example https://image.tmdb.org</string>
+    <string name="dialog_tmdb_section_data">Data source</string>
+    <string name="dialog_tmdb_section_ratings">Ratings</string>
+    <string name="dialog_tmdb_section_rules">Source rules</string>
     <string name="dialog_omdb_api_key_label">OMDb API Key (Optional, for IMDB ratings)</string>
     <string name="dialog_omdb_api_key_hint">Enter OMDb API Key</string>
     <string name="dialog_omdb_api_key_tip">Get free API Key (1000/day): https://www.omdbapi.com/apikey.aspx</string>

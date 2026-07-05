@@ -380,6 +380,46 @@ public class VideoActivityLayoutTest {
     }
 
     @Test
+    public void playbackActivityKeepsScreenOnFromPlaybackStateTransitions() throws Exception {
+        Path sourcePath = findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "PlaybackActivity.java"));
+        String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
+        int sync = source.indexOf("private void syncKeepScreenOn()");
+        int should = source.indexOf("private boolean shouldKeepScreenOn()", sync);
+        int lifecycle = source.indexOf("private String lifecycleState()", should);
+        String syncBody = sync >= 0 && should > sync ? source.substring(sync, should) : "";
+        String shouldBody = should >= 0 && lifecycle > should ? source.substring(should, lifecycle) : "";
+        int connected = source.indexOf("private void handleControllerConnected()");
+        int connectedAddListener = source.indexOf("mController.addListener(this);", connected);
+        int connectedSync = source.indexOf("syncKeepScreenOn();", connectedAddListener);
+        int playing = source.indexOf("public void onIsPlayingChanged(boolean isPlaying)");
+        int playingSync = source.indexOf("syncKeepScreenOn();", playing);
+        int playWhenReady = source.indexOf("public void onPlayWhenReadyChanged(boolean playWhenReady, int reason)");
+        int playWhenReadySync = source.indexOf("syncKeepScreenOn();", playWhenReady);
+        int state = source.indexOf("public void onPlaybackStateChanged(int state)");
+        int stateSync = source.indexOf("syncKeepScreenOn();", state);
+        int service = source.indexOf("public void onServiceConnected(ComponentName name, IBinder binder)");
+        int serviceSync = source.indexOf("syncKeepScreenOn();", service);
+        int resume = source.indexOf("protected void onResume()");
+        int resumeSync = source.indexOf("syncKeepScreenOn();", resume);
+
+        assertTrue(sourcePath + " is missing syncKeepScreenOn", sync >= 0);
+        assertTrue(sourcePath + " is missing shouldKeepScreenOn", should > sync);
+        assertTrue("wake flag sync must add and clear the window flag from one place",
+                syncBody.contains("addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)")
+                        && syncBody.contains("clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)"));
+        assertTrue("wake flag must stay on while playback is active or preparing to play",
+                shouldBody.contains("active.isPlaying()")
+                        && shouldBody.contains("active.getPlayWhenReady()")
+                        && shouldBody.contains("state == Player.STATE_BUFFERING || state == Player.STATE_READY"));
+        assertTrue("controller attachment must sync wake state in case playback was already active", connectedSync > connectedAddListener);
+        assertTrue("playing changes must sync wake state", playingSync > playing);
+        assertTrue("playWhenReady changes must sync wake state so pausing while buffering clears the flag", playWhenReady >= 0 && playWhenReadySync > playWhenReady);
+        assertTrue("state changes must sync wake state so buffering/ready cannot miss the flag", stateSync > state);
+        assertTrue("service connection must sync wake state before subclass hooks run", serviceSync > service);
+        assertTrue("resume must resync wake state after returning to an active player", resumeSync > resume);
+    }
+
+    @Test
     public void playbackLoadingOnlyClearsFromReadyOrTmdbReady() throws Exception {
         Path mobilePath = findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"));
         String mobile = new String(Files.readAllBytes(mobilePath), StandardCharsets.UTF_8);
