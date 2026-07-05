@@ -5069,7 +5069,8 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.playerDanmaku.setVisibility(hasPlayer && inlineControlController.hasDanmakuControl() ? View.VISIBLE : View.GONE);
         binding.playerChapter.setVisibility(hasTitle ? View.VISIBLE : View.GONE);
         binding.playerRepeat.setSelected(hasPlayer && player().isRepeatOne());
-        binding.playerPlayParams.setSelected(hasPlayer && inlineControlController.isDiagnosticsVisible());
+        // TODO: PlayParams功能需要OSD对象支持，暂时禁用
+        // binding.playerPlayParams.setSelected(hasPlayer && inlineControlController.isDiagnosticsVisible());
         setInlineFullscreenIcon();
         updateMobileInlineButtons(playing, hasPlayer, episodeCount, hasTitle);
         applyInlinePlayerButtonSettings();
@@ -5180,8 +5181,9 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         detailControlView(R.id.lock, View.class).setVisibility(inlineFullscreen ? View.VISIBLE : View.GONE);
         detailControlView(R.id.rotate, View.class).setVisibility(inlineFullscreen && !locked && !inlineShortDramaMode ? View.VISIBLE : View.GONE);
         detailControlView(R.id.pip, View.class).setVisibility(canShowInlinePiP(hasPlayer, locked) ? View.VISIBLE : View.GONE);
-        detailControlView(R.id.prev, View.class).setVisibility(!locked && hasPrev ? View.VISIBLE : View.GONE);
-        detailControlView(R.id.next, View.class).setVisibility(!locked && hasNext ? View.VISIBLE : View.GONE);
+        // 上集/下集按钮始终可见（只要有集数），点击时如果没有相邻集数会显示提示（与影视原生模式保持一致）
+        detailControlView(R.id.prev, View.class).setVisibility(!locked && hasPlayer && episodeCount > 0 ? View.VISIBLE : View.GONE);
+        detailControlView(R.id.next, View.class).setVisibility(!locked && hasPlayer && episodeCount > 0 ? View.VISIBLE : View.GONE);
         detailControlView(R.id.cast, View.class).setVisibility(!locked && hasInlineCast() ? View.VISIBLE : View.GONE);
         detailControlView(R.id.info, View.class).setVisibility(!locked && hasInlineInfo() ? View.VISIBLE : View.GONE);
         detailControlView(R.id.setting, View.class).setVisibility(!locked && hasPlayer ? View.VISIBLE : View.GONE);
@@ -5608,12 +5610,14 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private void toggleInlinePlayParams() {
-        if (inlineControlController == null) return;
-        boolean visible = !inlineControlController.isDiagnosticsVisible();
-        PlayerSetting.putOsdDiagnostics(visible);
-        inlineControlController.setDiagnosticsVisible(visible);
-        binding.playerPlayParams.setSelected(visible);
-        hideInlineControl();
+        // TODO: PlayParams功能需要OSD对象支持，暂时显示提示
+        Notify.show("播放参数功能开发中");
+        // if (inlineControlController == null) return;
+        // boolean visible = !inlineControlController.isDiagnosticsVisible();
+        // PlayerSetting.putOsdDiagnostics(visible);
+        // inlineControlController.setDiagnosticsVisible(visible);
+        // binding.playerPlayParams.setSelected(visible);
+        // hideInlineControls();
     }
 
     private void onInlineLut() {
