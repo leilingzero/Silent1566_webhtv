@@ -259,6 +259,29 @@ public class TmdbDetailActivityLayoutTest {
     }
 
     @Test
+    public void inlinePlayerPersistentDisplayUsesPlayerOsdOnTvAndLegacyPanelOnMobile() throws Exception {
+        Path sourcePath = findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "TmdbDetailActivity.java"));
+        String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
+        int method = source.indexOf("private void updateInlineDisplayPanel()");
+        int end = source.indexOf("private void setButtonEnabled", method);
+        String body = method >= 0 && end > method ? source.substring(method, end) : "";
+        int initOsd = source.indexOf("inlineOsd = new PlayerOsdController(");
+
+        assertTrue(sourcePath + " is missing updateInlineDisplayPanel", method >= 0);
+        assertTrue("mobile inline playback must suppress PlayerOsdController persistent corner labels to avoid duplicate display",
+                initOsd >= 0 && source.indexOf("inlineOsd.setPersistentSuppressed(Util.isMobile());", initOsd) > initOsd);
+        assertTrue("TV inline playback should clear the legacy panel and let PlayerOsdController render persistent OSD",
+                body.contains("if (!Util.isMobile()) {") && body.contains("hideInlineDisplayPanel();") && body.contains("return;"));
+        assertTrue("mobile inline playback should keep the legacy display panel for persistent screen display",
+                body.contains("PlayerSetting.isDisplayTime()")
+                        && body.contains("Traffic.setSpeed(binding.playerDisplayTraffic)")
+                        && body.contains("binding.playerDisplayTopLeft.setVisibility")
+                        && body.contains("binding.playerDisplayBottomProgress.setVisibility")
+                        && body.contains("binding.playerDisplayMini.setVisibility"));
+        assertTrue("mobile legacy display text should be tinted before being shown", body.contains("tintInlineDisplay();"));
+    }
+
+    @Test
     public void mobileInlineCastReflectionKeepsR8MethodNames() throws Exception {
         Path sourcePath = findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "TmdbDetailActivity.java"));
         String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);

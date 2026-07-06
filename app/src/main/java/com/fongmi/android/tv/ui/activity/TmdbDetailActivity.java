@@ -771,6 +771,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             },
             14f
         );
+        inlineOsd.setPersistentSuppressed(Util.isMobile());
         inlineGestureDetector = PlayerGesture.create(this, binding.playerPanel, this);
         setupPlayerPanelFocusLayer();
         binding.playerPanel.setOnTouchListener(this::onInlineTouch);
@@ -5454,6 +5455,10 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
 
     private void updateInlineDisplayPanel() {
         if (binding == null) return;
+        if (!Util.isMobile()) {
+            hideInlineDisplayPanel();
+            return;
+        }
         if (isInPictureInPictureMode() || isInlineDisplaySuppressed()) {
             hideInlineDisplayPanel();
             return;
