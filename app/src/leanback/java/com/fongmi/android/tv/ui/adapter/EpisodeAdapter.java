@@ -205,7 +205,7 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
     }
 
     public static String getTitle(Episode item) {
-        if (item.getTmdbEpisode() != null) {
+        if (item.getTmdbEpisode() != null && Setting.getTmdbEpisodeShowScrapedName()) {
             String title = EpisodeTitleFormatter.formatTmdbTitle(item.getTmdbEpisode().getNumber(), item.getTmdbEpisode().getTitle());
             if (!title.isEmpty()) return item.getDesc().concat(EpisodeTitleFormatter.withSourceFileSize(item.getName(), title, Setting.isTmdbEpisodeFileSize()));
         }
@@ -429,6 +429,7 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
     }
 
     private String getCardTitle(Episode item, TmdbEpisode tmdbEpisode) {
+        if (!Setting.getTmdbEpisodeShowScrapedName()) return item.getDisplayName();
         String title = EpisodeTitleFormatter.formatTmdbTitle(tmdbEpisode.getNumber(), tmdbEpisode.getTitle());
         if (title.isEmpty()) title = tmdbEpisode.getDisplayTitle();
         return EpisodeTitleFormatter.withSourceFileSize(item.getName(), title, Setting.isTmdbEpisodeFileSize());

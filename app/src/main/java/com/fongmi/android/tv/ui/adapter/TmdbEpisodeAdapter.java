@@ -72,7 +72,11 @@ public class TmdbEpisodeAdapter extends RecyclerView.Adapter<TmdbEpisodeAdapter.
     }
 
     public void setItems(List<Episode> episodes, Map<Integer, TmdbEpisode> tmdbEpisodes, Map<Episode, Integer> numbers, Episode selected) {
-        if (sameItems(episodes, tmdbEpisodes, numbers)) {
+        setItems(episodes, tmdbEpisodes, numbers, selected, false);
+    }
+
+    public void setItems(List<Episode> episodes, Map<Integer, TmdbEpisode> tmdbEpisodes, Map<Episode, Integer> numbers, Episode selected, boolean forceRefresh) {
+        if (!forceRefresh && sameItems(episodes, tmdbEpisodes, numbers)) {
             if (Objects.equals(this.selected, selected)) return;
             setSelected(selected);
             return;
@@ -493,7 +497,7 @@ public class TmdbEpisodeAdapter extends RecyclerView.Adapter<TmdbEpisodeAdapter.
     }
 
     public static String formatCleanTitle(String label, String sourceName, String tmdbTitle) {
-        return EpisodeTitleFormatter.formatTmdbTitle(label, sourceName, tmdbTitle);
+        return EpisodeTitleFormatter.formatTmdbTitle(label, sourceName, tmdbTitle, Setting.getTmdbEpisodeShowScrapedName());
     }
 
     private static String titleWithFileSize(Episode episode, String title) {

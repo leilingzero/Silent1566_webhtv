@@ -134,7 +134,9 @@ public class EpisodeAdapter extends RecyclerView.Adapter<BaseEpisodeHolder> {
     }
 
     private static String getTmdbTitle(Episode item, TmdbEpisode tmdbEpisode) {
-        String title = EpisodeTitleFormatter.formatTmdbTitle(tmdbEpisode.getNumber(), tmdbEpisode.getTitle());
+        int number = tmdbEpisode.getNumber();
+        String label = number > 0 ? String.valueOf(number) : item.getName();
+        String title = EpisodeTitleFormatter.formatTmdbTitle(label, item.getName(), tmdbEpisode.getTitle(), Setting.getTmdbEpisodeShowScrapedName());
         if (TextUtils.isEmpty(title)) title = TextUtils.isEmpty(item.getName()) ? item.getDisplayName() : item.getName();
         return EpisodeTitleFormatter.withSourceFileSize(item.getName(), title, Setting.isTmdbEpisodeFileSize());
     }

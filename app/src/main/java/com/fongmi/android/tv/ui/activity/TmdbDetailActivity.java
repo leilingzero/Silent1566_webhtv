@@ -545,10 +545,14 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.themeModeDetail.setOnClickListener(view -> cycleThemeMode());
         binding.episodeReverse.setOnClickListener(view -> toggleEpisodeReverse());
         binding.episodeViewMode.setOnClickListener(view -> toggleEpisodeViewMode());
+        binding.episodeFileName.setOnClickListener(view -> toggleEpisodeFileName());
         binding.episodeReverse.setOnKeyListener((view, keyCode, event) -> onDetailEpisodeToolKey(view, keyCode, event));
         binding.episodeViewMode.setOnKeyListener((view, keyCode, event) -> onDetailEpisodeToolKey(view, keyCode, event));
-        binding.episodeReverse.setNextFocusRightId(R.id.episodeViewMode);
-        binding.episodeViewMode.setNextFocusLeftId(R.id.episodeReverse);
+        binding.episodeFileName.setOnKeyListener((view, keyCode, event) -> onDetailEpisodeToolKey(view, keyCode, event));
+        binding.episodeReverse.setNextFocusRightId(R.id.episodeFileName);
+        binding.episodeFileName.setNextFocusLeftId(R.id.episodeReverse);
+        binding.episodeFileName.setNextFocusRightId(R.id.episodeViewMode);
+        binding.episodeViewMode.setNextFocusLeftId(R.id.episodeFileName);
         setupOverviewInteraction();
         if (Util.isMobile()) binding.headerTitle.setText("");
         else binding.headerTitle.setText(detailModeTitle());
@@ -1252,6 +1256,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         setDetailActionButton(binding.themeModeDetail, colors);
         setEpisodeToolButton(binding.episodeReverse, colors);
         setEpisodeToolButton(binding.episodeViewMode, colors);
+        setEpisodeToolButton(binding.episodeFileName, colors);
         setButton(binding.play, colors.play, colors.play, 0xFFFFFFFF);
         binding.headerTitle.setTextColor(colors.primary);
         binding.title.setTextColor(colors.primary);
@@ -1670,6 +1675,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         ThemeColors colors = currentThemeColors();
         applyEpisodeToolButtonFocus(binding.episodeReverse, colors);
         applyEpisodeToolButtonFocus(binding.episodeViewMode, colors);
+        applyEpisodeToolButtonFocus(binding.episodeFileName, colors);
     }
 
     private void applyEpisodeToolButtonFocus(MaterialButton button, ThemeColors colors) {
@@ -3233,24 +3239,33 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private void applyEpisodeViewport(List<Episode> items, Map<Episode, Integer> episodeNumbers, boolean scrollToSelection) {
+        applyEpisodeViewport(items, episodeNumbers, scrollToSelection, false);
+    }
+
+    private void applyEpisodeViewport(List<Episode> items, Map<Episode, Integer> episodeNumbers, boolean scrollToSelection, boolean forceRefresh) {
         updateEpisodeViewModeButton();
+        updateEpisodeFileNameButton();
         int spanCount = episodeSpanCount();
         episodeAdapter.setDisplayMode(episodeGridMode ? TmdbEpisodeAdapter.Mode.GRID : TmdbEpisodeAdapter.Mode.LIST, spanCount);
         updateEpisodeLayoutManager(spanCount);
         updateEpisodeViewport(items.size(), spanCount);
         lastDetailEpisodeFocusRowStart = RecyclerView.NO_POSITION;
         episodeAdapter.setFallbackStillUrl(episodeFallbackStillUrl());
-        episodeAdapter.setItems(items, tmdbEpisodes, episodeNumbers, selectedEpisode);
+        episodeAdapter.setItems(items, tmdbEpisodes, episodeNumbers, selectedEpisode, forceRefresh);
         updateEpisodeSkeleton();
         if (scrollToSelection) scrollEpisodeToSelected();
         updatePlayLabel();
     }
 
     private void rerenderEpisodeViewportOnly(boolean scrollToSelection) {
-        rerenderEpisodeViewportOnly(scrollToSelection, false);
+        rerenderEpisodeViewportOnly(scrollToSelection, false, false);
     }
 
     private void rerenderEpisodeViewportOnly(boolean scrollToSelection, boolean rebuildRanges) {
+        rerenderEpisodeViewportOnly(scrollToSelection, rebuildRanges, false);
+    }
+
+    private void rerenderEpisodeViewportOnly(boolean scrollToSelection, boolean rebuildRanges, boolean forceRefresh) {
         List<Episode> episodes = selectedFlag == null ? null : selectedFlag.getEpisodes();
         if (episodes == null || episodes.isEmpty()) return;
         List<Episode> visibleEpisodes = visibleEpisodes(episodes);
@@ -3260,7 +3275,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         if (ranges.isEmpty()) {
             renderedEpisodeRangeIndex = -1;
             if (rebuildRanges) clearEpisodeRanges();
-            applyEpisodeViewport(List.of(), Map.of(), false);
+            applyEpisodeViewport(List.of(), Map.of(), false, forceRefresh);
             return;
         }
         episodeRangeIndex = resolveEpisodeRangeIndex(ranges);
@@ -3269,7 +3284,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         List<Episode> pageItems = ranges.size() > 1 ? EpisodeRangePolicy.slice(displayEpisodes, ranges.get(episodeRangeIndex)) : displayEpisodes;
         Map<Episode, Integer> numbers = episodeNumbers(pageItems, episodes);
         binding.episodeReverse.setText(episodeReverse ? R.string.detail_episode_forward : R.string.detail_episode_reverse);
-        applyEpisodeViewport(pageItems, numbers, scrollToSelection);
+        applyEpisodeViewport(pageItems, numbers, scrollToSelection, forceRefresh);
         renderedEpisodeRangeIndex = ranges.size() > 1 ? episodeRangeIndex : -1;
     }
 
@@ -3749,11 +3764,23 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         rerenderEpisodeViewportOnly(false);
     }
 
+    private void toggleEpisodeFileName() {
+        boolean showScraped = !Setting.getTmdbEpisodeShowScrapedName();
+        Setting.putTmdbEpisodeShowScrapedName(showScraped);
+        rerenderEpisodeViewportOnly(false, false, true);
+    }
+
     private void updateEpisodeViewModeButton() {
         boolean switchToList = episodeGridMode;
         binding.episodeViewMode.setText(switchToList ? R.string.detail_episode_view_list : R.string.detail_episode_view_grid);
         binding.episodeViewMode.setIconResource(switchToList ? R.drawable.ic_site_list : R.drawable.ic_site_grid);
         binding.episodeViewMode.setContentDescription(getString(switchToList ? R.string.detail_episode_view_list_action : R.string.detail_episode_view_grid_action));
+    }
+
+    private void updateEpisodeFileNameButton() {
+        boolean showScraped = Setting.getTmdbEpisodeShowScrapedName();
+        binding.episodeFileName.setText(showScraped ? R.string.detail_episode_file_name_original : R.string.detail_episode_file_name_scraped);
+        binding.episodeFileName.setContentDescription(getString(showScraped ? R.string.detail_episode_file_name_original_action : R.string.detail_episode_file_name_scraped_action));
     }
 
     private void updateEpisodeLayoutManager() {
