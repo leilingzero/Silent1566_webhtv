@@ -27,6 +27,11 @@ public class TmdbDetailActivityLayoutTest {
                 helper > load && source.indexOf("MediaTitleResolver resolver = new MediaTitleResolver();", helper) > helper);
         assertTrue("automatic TMDB detail matching must not fall back to obfuscated raw titles when parser cleaned them",
                 queryFilter > helper && source.indexOf("shouldSkipRawTmdbQuery(rawTitle, resolution)", queryFilter) > queryFilter);
+        int originalSearch = source.indexOf("AutoTmdbMatch match = searchResolvedTmdbMatch(rawTitle, resolution, attempted);", helper);
+        int cleaned = source.indexOf("resolver.queryCleanedTitles(request, 4)", originalSearch);
+        int aiFallback = source.indexOf("resolver.resolveWithAiFallback(request)", originalSearch);
+        assertTrue("automatic TMDB detail matching must try code-cleaned title candidates before AI fallback",
+                originalSearch > helper && cleaned > originalSearch && aiFallback > cleaned);
         assertTrue("automatic TMDB detail matching must accept exact same-title ties from TMDB search order",
                 exactTie > 0 && source.indexOf("shouldAcceptFirstExactTmdbCandidate(best, second, keyword, sourceVod)", load) > load);
     }
@@ -44,6 +49,44 @@ public class TmdbDetailActivityLayoutTest {
         assertTrue("stale cached title F must not override parsed title 凡人修仙传",
                 source.indexOf("new MediaTitleParser().cleanTitle(getTmdbRawTitle())", compatible) > compatible
                         && source.indexOf("normalize(item.getTitle()).equals(normalize(parsedTitle))", compatible) > compatible);
+    }
+
+    @Test
+    public void playbackTmdbItemKeepsMatchedTitleForNativeEnhancedHeader() throws Exception {
+        String source = readJava("com", "fongmi", "android", "tv", "ui", "activity", "TmdbDetailActivity.java");
+        int method = source.indexOf("private TmdbItem playbackTmdbItem()");
+        int end = source.indexOf("private Vod playbackTmdbVod()", method);
+        String body = source.substring(method, end);
+
+        assertTrue("native enhanced playback must pass the matched TMDB title, not the noisy source title",
+                body.contains("matchedTmdbTitle()"));
+        assertTrue("native enhanced playback item must not replace TMDB title with vod.getName()",
+                !body.contains("TextUtils.isEmpty(vod.getName()) ? matchedTmdbItem.getTitle() : vod.getName()"));
+    }
+
+    @Test
+    public void tmdbDetailNormalizesCachedTitleBeforeNativeEnhancedPlayback() throws Exception {
+        String source = readJava("com", "fongmi", "android", "tv", "ui", "activity", "TmdbDetailActivity.java");
+        int loadBundle = source.indexOf("private TmdbBundle loadTmdbBundle(TmdbItem item)");
+        int normalize = source.indexOf("private TmdbItem normalizeTmdbItemTitle", loadBundle);
+        int detailTitle = source.indexOf("private String tmdbDetailTitle", normalize);
+        int playbackName = source.indexOf("private String playbackHistoryName()");
+        int enrichVod = source.indexOf("private void enrichVod()");
+        int manual = source.indexOf("private void applyManualTmdb(TmdbItem item)");
+
+        assertTrue("TMDB detail loading must normalize stale cached item titles from the detail payload",
+                loadBundle >= 0 && source.indexOf("item = normalizeTmdbItemTitle(item, detail);", loadBundle) > loadBundle);
+        assertTrue("title normalization must prefer detail name/title over cached item title",
+                normalize > loadBundle && detailTitle > normalize
+                        && source.indexOf("tmdbDetailTitle(item, detail)", normalize) > normalize
+                        && source.indexOf("string(detail, \"name\")", detailTitle) > detailTitle
+                        && source.indexOf("string(detail, \"title\")", detailTitle) > detailTitle);
+        assertTrue("native enhanced playback history name must use normalized TMDB title",
+                playbackName >= 0 && source.indexOf("coalesce(matchedTmdbTitle()", playbackName) > playbackName);
+        assertTrue("detail page vod title must use normalized TMDB title",
+                enrichVod >= 0 && source.indexOf("String title = matchedTmdbTitle();", enrichVod) > enrichVod);
+        assertTrue("manual matching must save the normalized bundle item, not the pre-detail item",
+                manual >= 0 && source.indexOf("saveTmdbMatch(bundle.item());", manual) > manual);
     }
 
     @Test

@@ -1149,6 +1149,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         if (mTmdbUIAdapter != null && mTmdbUIAdapter.isReady()) {
             com.fongmi.android.tv.bean.TmdbItem tmdbItem = getTmdbItem();
             if (tmdbItem != null) {
+                SpiderDebug.log("tmdb-tv", "direct load vodTitle=%s tmdbTitle=%s tmdbId=%d media=%s", item.getName(), tmdbItem.getTitle(), tmdbItem.getTmdbId(), tmdbItem.getMediaType());
                 mTmdbUIAdapter.load(tmdbItem, item);
             } else {
                 mTmdbUIAdapter.autoMatch(item.getName(), item);
@@ -3180,7 +3181,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private static String stripPageSuffix(String id) {
         if (TextUtils.isEmpty(id)) return id;
         int slash = id.indexOf('/');
-        return slash >= 0 ? id.substring(0, slash) : id;
+        return slash > 0 ? id.substring(0, slash) : id;
     }
 
     private void loadNativePersonalRecommendations(Vod item) {
