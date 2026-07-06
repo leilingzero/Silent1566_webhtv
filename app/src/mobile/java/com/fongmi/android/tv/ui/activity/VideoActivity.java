@@ -1229,6 +1229,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             com.fongmi.android.tv.bean.TmdbItem tmdbItem = getTmdbItem();
             if (tmdbItem != null) {
                 // 直接使用传入的 TmdbItem
+                SpiderDebug.log("tmdb-mobile", "direct load vodTitle=%s tmdbTitle=%s tmdbId=%d media=%s", item.getName(), tmdbItem.getTitle(), tmdbItem.getTmdbId(), tmdbItem.getMediaType());
                 mTmdbUIAdapter.load(tmdbItem, item);
             } else {
                 // 自动搜索匹配
@@ -3630,7 +3631,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         if (mFusionThemeButton != null) {
             mFusionThemeButton.setOnClickListener(view -> cycleFusionTheme());
         }
-        updateFusionThemeButtonVisibility();
+        updateFusionThemeButton();
     }
 
     private RelativeLayout getFusionChromeRoot() {

@@ -1151,6 +1151,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         if (mTmdbUIAdapter != null && mTmdbUIAdapter.isReady()) {
             com.fongmi.android.tv.bean.TmdbItem tmdbItem = getTmdbItem();
             if (tmdbItem != null) {
+                SpiderDebug.log("tmdb-tv", "direct load vodTitle=%s tmdbTitle=%s tmdbId=%d media=%s", item.getName(), tmdbItem.getTitle(), tmdbItem.getTmdbId(), tmdbItem.getMediaType());
                 mTmdbUIAdapter.load(tmdbItem, item);
             } else {
                 mTmdbUIAdapter.autoMatch(item.getName(), item);
@@ -2468,6 +2469,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private void setOpening(long opening) {
         mHistory.setOpening(opening);
         mBinding.control.action.opening.setText(opening <= 0 ? getString(R.string.play_op) : Util.timeMs(mHistory.getOpening()));
+        syncHistory();
     }
 
     private void onEnding() {
@@ -2492,6 +2494,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private void setEnding(long ending) {
         mHistory.setEnding(ending);
         mBinding.control.action.ending.setText(ending <= 0 ? getString(R.string.play_ed) : Util.timeMs(mHistory.getEnding()));
+        syncHistory();
     }
 
     private void onChoose() {
@@ -3219,7 +3222,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private static String stripPageSuffix(String id) {
         if (TextUtils.isEmpty(id)) return id;
         int slash = id.indexOf('/');
-        return slash >= 0 ? id.substring(0, slash) : id;
+        return slash > 0 ? id.substring(0, slash) : id;
     }
 
     private void loadNativePersonalRecommendations(Vod item) {
@@ -4463,6 +4466,36 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         return mFocus2 == null || mFocus2.getVisibility() != View.VISIBLE || !PlayerControlFocusHelper.isDescendant(mBinding.control.getRoot(), mFocus2) || mFocus2 == mBinding.control.action.opening || mFocus2 == mBinding.control.action.ending ? mBinding.control.action.next : mFocus2;
     }
 
+    private boolean dispatchOpeningEndingAdjust(KeyEvent event) {
+        if (!KeyUtil.isActionDown(event) || !isVisible(mBinding.control.getRoot())) return false;
+        View focus = getCurrentFocus();
+        if (focus == mBinding.control.action.opening) return dispatchOpeningAdjust(event);
+        if (focus == mBinding.control.action.ending) return dispatchEndingAdjust(event);
+        return false;
+    }
+
+    private boolean dispatchOpeningAdjust(KeyEvent event) {
+        if (KeyUtil.isUpKey(event)) {
+            onOpeningAdd();
+            return true;
+        } else if (KeyUtil.isDownKey(event)) {
+            onOpeningSub();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean dispatchEndingAdjust(KeyEvent event) {
+        if (KeyUtil.isUpKey(event)) {
+            onEndingAdd();
+            return true;
+        } else if (KeyUtil.isDownKey(event)) {
+            onEndingSub();
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (KeyUtil.isActionUp(event) && KeyUtil.isBackKey(event) && mBinding.lutQuick.hideIfVisible()) return true;
@@ -4473,6 +4506,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         }
         if (isVisible(mBinding.control.getRoot())) {
             setR1Callback();
+            if (dispatchOpeningEndingAdjust(event)) return true;
             if (PlayerControlFocusHelper.handleKey(mBinding.control.getRoot(), getFocus2(), event)) return true;
             if (PlayerControlFocusHelper.containsFocus(mBinding.control.getRoot())) mFocus2 = getCurrentFocus();
         }
