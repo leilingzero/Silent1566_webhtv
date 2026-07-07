@@ -148,6 +148,51 @@ public class VideoActivityLayoutTest {
     }
 
     @Test
+    public void mobileFullscreenButtonRevealsControlsAfterNativeEnhancedLayoutSettles() throws Exception {
+        Path sourcePath = findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"));
+        String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
+
+        int onFullscreen = source.indexOf("private void onFullscreen()");
+        int onFullscreenEnd = source.indexOf("private void onPiP()", onFullscreen);
+        int enterFullscreen = source.indexOf("private void enterFullscreen()");
+        int schedule = source.indexOf("private void scheduleFullscreenControlReveal()", enterFullscreen);
+        int guard = source.indexOf("private void showControlIfFullscreen()", schedule);
+        int exitFullscreen = source.indexOf("private void exitFullscreen()", guard);
+        int configChanged = source.indexOf("public void onConfigurationChanged(@NonNull Configuration newConfig)");
+        int configEnd = source.indexOf("public void onWindowFocusChanged(boolean hasFocus)", configChanged);
+
+        assertTrue(sourcePath + " is missing onFullscreen", onFullscreen >= 0 && onFullscreenEnd > onFullscreen);
+        assertTrue(sourcePath + " is missing enterFullscreen", enterFullscreen >= 0 && schedule > enterFullscreen);
+        assertTrue(sourcePath + " is missing scheduleFullscreenControlReveal", schedule >= 0 && guard > schedule);
+        assertTrue(sourcePath + " is missing showControlIfFullscreen", guard >= 0 && exitFullscreen > guard);
+        assertTrue(sourcePath + " is missing onConfigurationChanged", configChanged >= 0 && configEnd > configChanged);
+
+        String onFullscreenBody = source.substring(onFullscreen, onFullscreenEnd);
+        String enterFullscreenBody = source.substring(enterFullscreen, schedule);
+        String scheduleBody = source.substring(schedule, guard);
+        String guardBody = source.substring(guard, exitFullscreen);
+        String configBody = source.substring(configChanged, configEnd);
+
+        assertTrue("fullscreen button must reveal controls after the immediate showControl call",
+                onFullscreenBody.contains("boolean exit = isFullscreen();")
+                        && onFullscreenBody.contains("showControl();")
+                        && onFullscreenBody.contains("if (!exit) scheduleFullscreenControlReveal();")
+                        && onFullscreenBody.indexOf("showControl();") < onFullscreenBody.indexOf("scheduleFullscreenControlReveal();"));
+        assertTrue("fullscreen player layer must sit above native enhanced detail content",
+                enterFullscreenBody.contains("mBinding.video.bringToFront();"));
+        assertTrue("fullscreen control reveal must run once after layout and once after orientation settles",
+                scheduleBody.contains("mBinding.video.post(this::showControlIfFullscreen);")
+                        && scheduleBody.contains("mBinding.video.postDelayed(this::showControlIfFullscreen, 300);"));
+        assertTrue("delayed fullscreen control reveal must not run after exit, lock, or PiP",
+                guardBody.contains("if (!isFullscreen() || isLock() || isInPictureInPictureMode()) return;")
+                        && guardBody.contains("showControl();"));
+        assertTrue("orientation changes must refresh visible fullscreen controls after landscape state is applied",
+                configBody.contains("if (isFullscreen()) {")
+                        && configBody.contains("Util.hideSystemUI(this);")
+                        && configBody.contains("if (isVisible(mBinding.control.getRoot())) showControl();"));
+    }
+
+    @Test
     public void mobileVideoTmdbMovableViewsKeepQualityBetweenFlagsAndEpisodes() throws Exception {
         Path sourcePath = findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"));
         String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);

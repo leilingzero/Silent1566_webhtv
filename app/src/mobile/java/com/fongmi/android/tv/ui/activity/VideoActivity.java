@@ -2051,9 +2051,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void onFullscreen() {
-        if (isFullscreen()) exitFullscreen();
+        boolean exit = isFullscreen();
+        if (exit) exitFullscreen();
         else enterFullscreen();
         showControl();
+        if (!exit) scheduleFullscreenControlReveal();
     }
 
     private void onPiP() {
@@ -2345,6 +2347,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         setFullscreen(true);
         if (isLand() && !player().isPortrait()) setTransition();
         mBinding.video.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+        mBinding.video.bringToFront();
         setRequestedOrientation(PlaybackOrientation.getEnterFullscreenOrientation(player().isPortrait()));
         mBinding.control.title.setVisibility(View.VISIBLE);
         setSizeText();
@@ -2352,6 +2355,16 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mKeyDown.resetScale();
         App.post(mR3, 2000);
         hideControl();
+    }
+
+    private void scheduleFullscreenControlReveal() {
+        mBinding.video.post(this::showControlIfFullscreen);
+        mBinding.video.postDelayed(this::showControlIfFullscreen, 300);
+    }
+
+    private void showControlIfFullscreen() {
+        if (!isFullscreen() || isLock() || isInPictureInPictureMode()) return;
+        showControl();
     }
 
     private void exitFullscreen() {
@@ -4528,7 +4541,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             applyTmdbTabletVideoLayoutIfNeeded();
             if (mVod != null) bindTmdbTabletTopSummary(mVod);
         }
-        if (isFullscreen()) Util.hideSystemUI(this);
+        if (isFullscreen()) {
+            Util.hideSystemUI(this);
+            if (isVisible(mBinding.control.getRoot())) showControl();
+        }
     }
 
     @Override
