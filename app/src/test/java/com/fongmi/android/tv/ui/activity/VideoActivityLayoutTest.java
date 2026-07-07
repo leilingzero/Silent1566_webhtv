@@ -133,6 +133,67 @@ public class VideoActivityLayoutTest {
     }
 
     @Test
+    public void videoActivitiesDelegateSharedPlayerUiSetup() throws Exception {
+        String leanback = new String(Files.readAllBytes(findLeanbackJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"))), StandardCharsets.UTF_8);
+        String mobile = new String(Files.readAllBytes(findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"))), StandardCharsets.UTF_8);
+        String host = new String(Files.readAllBytes(findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "player", "VodPlayerUiHost.java"))), StandardCharsets.UTF_8);
+        String controller = new String(Files.readAllBytes(findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "player", "VodPlayerUiController.java"))), StandardCharsets.UTF_8);
+        String chrome = new String(Files.readAllBytes(findMainJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "player", "VodPlayerChrome.java"))), StandardCharsets.UTF_8);
+
+        assertVideoActivityDelegatesSharedPlayerUiSetup("leanback VideoActivity", leanback, "VodPlayerChrome.fromVideo(mBinding, mBinding.widget.clock, 14f)");
+        assertVideoActivityDelegatesSharedPlayerUiSetup("mobile VideoActivity", mobile, "VodPlayerChrome.fromVideo(mBinding, null, 12f)");
+        assertTrue("shared video chrome factory must expose OSD, optional clock and optional diagnostics button",
+                chrome.contains("fromVideo(ActivityVideoBinding binding, TextView clockView, float osdMiniSp)")
+                        && chrome.contains("binding.osd.getRoot()")
+                        && chrome.contains("clockView")
+                        && chrome.contains("osdMiniSp"));
+        assertTrue("shared player UI controller must create Clock with the optional chrome clock view",
+                controller.contains("chrome.clockView == null ? Clock.create() : Clock.create(chrome.clockView)"));
+        assertTrue("shared host should let activities preserve their previous diagnostics restore behavior",
+                host.contains("default boolean restoreDiagnosticsOnStart()") && host.contains("return true;"));
+        assertTrue("shared controller should only restore diagnostics visibility when the host opts in",
+                controller.contains("if (host.restoreDiagnosticsOnStart()) osd.setDiagnosticsVisible(PlayerSetting.isOsdDiagnostics());"));
+        int mobileRestore = mobile.indexOf("public boolean restoreDiagnosticsOnStart()");
+        int mobileRestoreEnd = mobile.indexOf("}", mobileRestore);
+        String mobileRestoreBody = mobileRestore >= 0 && mobileRestoreEnd > mobileRestore ? mobile.substring(mobileRestore, mobileRestoreEnd) : "";
+        assertTrue("mobile VideoActivity must keep diagnostics as a manual transient overlay",
+                mobileRestoreBody.contains("return false;"));
+        assertTrue("leanback VideoActivity should keep persistent diagnostics restore via the host default",
+                !leanback.contains("public boolean restoreDiagnosticsOnStart()"));
+    }
+
+    private static void assertVideoActivityDelegatesSharedPlayerUiSetup(String label, String source, String chromeFactory) {
+        int init = source.indexOf("protected void initView(Bundle savedInstanceState)");
+        int initEnd = source.indexOf("private void setRecyclerView()", init);
+        int start = source.indexOf("protected void onStart()");
+        int startEnd = source.indexOf("protected void onStop()", start);
+        int stopEnd = source.indexOf("\n    @Override", startEnd + 1);
+        int destroy = source.indexOf("protected void onDestroy()");
+        int destroyEnd = source.indexOf("private boolean isOwner()", destroy);
+        if (stopEnd < 0) stopEnd = destroy;
+        if (destroyEnd < 0) destroyEnd = source.length();
+        String initBody = source.substring(init, initEnd);
+        String startBody = source.substring(start, startEnd);
+        String stopBody = source.substring(startEnd, stopEnd);
+        String destroyBody = source.substring(destroy, destroyEnd);
+
+        assertTrue(label + " must own a shared player UI controller field", source.contains("private VodPlayerUiController mPlayerUi;"));
+        assertTrue(label + " must create shared player UI controller with the variant chrome", initBody.contains("mPlayerUi = new VodPlayerUiController") && initBody.contains(chromeFactory));
+        assertTrue(label + " must backfill legacy playback UI fields during migration",
+                initBody.contains("mClock = mPlayerUi.clock();")
+                        && initBody.contains("mOsd = mPlayerUi.osd();")
+                        && initBody.contains("mPiP = mPlayerUi.pip();"));
+        assertTrue(label + " should not instantiate duplicate OSD/Clock/PiP helpers in initView",
+                !initBody.contains("new PlayerOsdController")
+                        && !initBody.contains("Clock.create(")
+                        && !initBody.contains("new PiP()"));
+        assertTrue(label + " must delegate shared UI lifecycle",
+                startBody.contains("mPlayerUi.onStart();")
+                        && stopBody.contains("mPlayerUi.onStop();")
+                        && destroyBody.contains("mPlayerUi.release();"));
+    }
+
+    @Test
     public void mobileShortDramaKeepsStandardSettingButtonVisible() throws Exception {
         Path sourcePath = findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"));
         String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);

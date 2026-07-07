@@ -136,6 +136,9 @@ import com.fongmi.android.tv.ui.helper.EpisodeDisplayPolicy;
 import com.fongmi.android.tv.ui.helper.EpisodeRangePolicy;
 import com.fongmi.android.tv.ui.helper.PlayerControlFocusHelper;
 import com.fongmi.android.tv.ui.helper.TmdbNavigation;
+import com.fongmi.android.tv.ui.player.VodPlayerChrome;
+import com.fongmi.android.tv.ui.player.VodPlayerUiController;
+import com.fongmi.android.tv.ui.player.VodPlayerUiHost;
 import com.fongmi.android.tv.utils.AudioUtil;
 import com.fongmi.android.tv.utils.Clock;
 import com.fongmi.android.tv.utils.EpisodeTitleCompact;
@@ -210,6 +213,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private Map<String, View> mActionButtons;
     private SiteViewModel mViewModel;
     private FlagAdapter mFlagAdapter;
+    private VodPlayerUiController mPlayerUi;
     private PlayerOsdController mOsd;
     private final IntroSkipPlayback mIntroSkipPlayback = new IntroSkipPlayback();
     private final SubtitlePlaybackSession subtitlePlaybackSession = new SubtitlePlaybackSession(this);
@@ -723,28 +727,33 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mObservePlayer = this::setPlayer;
         mObserveSearch = this::setSearch;
         mBroken = new ArrayList<>();
-        mClock = Clock.create();
-        mClock.start();
+        mPlayerUi = new VodPlayerUiController(new VodPlayerUiHost() {
+            @Override
+            public PlayerManager player() {
+                return service() == null ? null : VideoActivity.this.player();
+            }
+
+            @Override
+            public String osdTitle() {
+                return getOsdTitle();
+            }
+
+            @Override
+            public boolean restoreDiagnosticsOnStart() {
+                return false;
+            }
+        }, VodPlayerChrome.fromVideo(mBinding, null, 12f), this);
+        mClock = mPlayerUi.clock();
+        mOsd = mPlayerUi.osd();
+        mPiP = mPlayerUi.pip();
         android.util.Log.d("VideoActivity", "Clock started in initView");
         mR1 = this::hideControl;
         mR2 = this::setTraffic;
         mR3 = this::setOrient;
         mR4 = this::showEmpty;
         mSeekProgressFallback = this::hideSeekProgressIfReady;
-        mPiP = new PiP();
         checkDanmakuImg();
         setRecyclerView();
-        mOsd = new PlayerOsdController(mBinding.osd.getRoot(), mBinding.osd.osdTopLeft, mBinding.osd.osdTopRight, mBinding.osd.osdBottomLeft, mBinding.osd.osdBottomRight, mBinding.osd.osdDiagnostics, mBinding.osd.osdMiniProgress, new PlayerOsdController.Source() {
-            @Override
-            public PlayerManager getPlayer() {
-                return service() == null ? null : player();
-            }
-
-            @Override
-            public String getTitle() {
-                return getOsdTitle();
-            }
-        }, 12f);
         setVideoView();
         setViewModel();
         initTmdbMode();
@@ -4542,7 +4551,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         super.onStart();
         android.util.Log.d("VideoActivity", "onStart: calling mClock.stop().start()");
         mClock.stop().start();
-        if (mOsd != null) mOsd.start();
+        mPlayerUi.onStart();
         setAudioOnly(false);
         setStop(false);
     }
@@ -4550,7 +4559,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     @Override
     protected void onStop() {
         super.onStop();
-        if (mOsd != null) mOsd.stop();
+        mPlayerUi.onStop();
         if (PlayerSetting.isBackgroundOff()) mClock.stop();
         if (!isAudioOnly()) setStop(true);
     }
@@ -4578,13 +4587,12 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     @Override
     protected void onDestroy() {
         subtitlePlaybackSession.stop(this);
-        mClock.release();
+        mPlayerUi.release();
         saveHistory(true);
         Timer.get().reset();
         DanmakuApi.cancel();
         RefreshEvent.keep();
         App.removeCallbacks(mR1, mR2, mR3, mR4, mSeekProgressFallback);
-        if (mOsd != null) mOsd.release();
         mViewModel.getResult().removeObserver(mObserveDetail);
         mViewModel.getPlayer().removeObserver(mObservePlayer);
         mViewModel.getSearch().removeObserver(mObserveSearch);
