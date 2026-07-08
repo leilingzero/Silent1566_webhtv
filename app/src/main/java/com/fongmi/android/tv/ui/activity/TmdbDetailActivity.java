@@ -305,6 +305,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private boolean inlineKeySpeedChanging;
     private float inlineGestureSpeed = 1.0f;
     private boolean inlineStartPositionApplied;
+    private boolean inlineFirstReady;
     private boolean inlinePiPLayout;
     private boolean inlinePiPLayoutRequested;
     private boolean inlinePiPSourceFrozen;
@@ -5305,6 +5306,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         }
         inlinePlaybackLoading = false;
         inlineStarted = true;
+        inlineFirstReady = false;  // 重置标志,允许新播放首次 READY 时显示控制栏
         inlinePlaybackEpisode = selectedEpisode;
         inlinePlaybackKey = getKeyText();
         inlinePlaybackFlag = selectedFlag == null ? "" : selectedFlag.getFlag();
@@ -7396,7 +7398,8 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private boolean shouldShowDetailFullscreenControlsOnReady() {
-        return detailPlayerActive && !isFusionMode() && inlineFullscreen && !isLock();
+        // 详情直放模式:只在首次准备完成时显示控制栏,快进/后退导致的 STATE_READY 不显示
+        return detailPlayerActive && !isFusionMode() && inlineFullscreen && !isLock() && !inlineFirstReady;
     }
 
     private void applyInlineShortDramaMode() {
@@ -8181,7 +8184,10 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             applyInlineShortDramaMode();
             requestIntroSkipPlan();
             applyAutoIntroSkip();
-            if (shouldShowDetailFullscreenControlsOnReady()) showInlineControls(true, false);
+            if (shouldShowDetailFullscreenControlsOnReady()) {
+                inlineFirstReady = true;  // 标记已显示过控制栏
+                showInlineControls(true, false);
+            }
         }
         if (state == Player.STATE_ENDED) checkInlineEnded(true);
         updateInlineDisplayPanel();
