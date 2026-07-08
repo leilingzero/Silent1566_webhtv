@@ -3935,12 +3935,41 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         if (!TextUtils.isEmpty(tmdbRating)) {
             chips.add(new String[]{"TMDB", tmdbRating + "/10", "#21D07A"});
         }
+        String[] boxOffice = buildBoxOfficeChip();
+        if (boxOffice != null) chips.add(boxOffice);
         PersonalRecommendationService.DoubanRating doubanRating = mTmdbDoubanRatingCache.get(currentTmdbDoubanRatingKey());
         if (doubanRating != null && !doubanRating.isEmpty()) {
             String rating = formatRating(doubanRating.getRating());
             if (!TextUtils.isEmpty(rating)) chips.add(new String[]{"豆瓣", rating + "/10", "#00B51D"});
         }
         return chips;
+    }
+
+    private String[] buildBoxOfficeChip() {
+        if (mTmdbUIAdapter == null) return null;
+        com.google.gson.JsonObject detail = mTmdbUIAdapter.getTmdbDetail();
+        if (detail == null) return null;
+        String mediaType = currentTmdbMediaType();
+        if (!"movie".equalsIgnoreCase(mediaType)) return null;
+        long revenue = 0;
+        try {
+            if (detail.has("revenue") && !detail.get("revenue").isJsonNull()) {
+                revenue = detail.get("revenue").getAsLong();
+            }
+        } catch (Exception ignored) {
+        }
+        if (revenue <= 0) return null;
+        return new String[]{"票房", formatBoxOffice(revenue), "#9C27B0"};
+    }
+
+    private String formatBoxOffice(long revenue) {
+        if (revenue >= 1_000_000_000L) {
+            return String.format(java.util.Locale.US, "$%.2fB", revenue / 1_000_000_000.0);
+        } else if (revenue >= 1_000_000L) {
+            return String.format(java.util.Locale.US, "$%.2fM", revenue / 1_000_000.0);
+        } else {
+            return String.format(java.util.Locale.US, "$%,d", revenue);
+        }
     }
 
     private void fetchTmdbDoubanRating() {

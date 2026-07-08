@@ -2927,6 +2927,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.ratingsContainer.setVisibility(View.GONE);
         String tmdb = tmdbRatingValue();
         if (!TextUtils.isEmpty(tmdb)) addRatingChip(key, "TMDB", tmdb + "/10", 0xFF21D07A);
+        addBoxOfficeChip(key);
         fetchDoubanRating(key);
         fetchOmdbRating(key);
         bindExternalLinks();
@@ -3152,6 +3153,34 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
             if (TextUtils.isEmpty(value) || "N/A".equalsIgnoreCase(value)) continue;
             if ("Rotten Tomatoes".equals(source)) addRatingChip(key, "烂番茄", value, 0xFFFA320A);
             else if ("Metacritic".equals(source)) addRatingChip(key, "Metacritic", value, 0xFFFFCC33);
+        }
+    }
+
+    private void addBoxOfficeChip(String key) {
+        if (matchedTmdbDetail == null || matchedTmdbItem == null) return;
+        if (!"movie".equalsIgnoreCase(matchedTmdbItem.getMediaType())) return;
+
+        long revenue = 0;
+        try {
+            if (matchedTmdbDetail.has("revenue") && !matchedTmdbDetail.get("revenue").isJsonNull()) {
+                revenue = matchedTmdbDetail.get("revenue").getAsLong();
+            }
+        } catch (Exception ignored) {
+        }
+
+        if (revenue <= 0) return;
+
+        String formatted = formatBoxOffice(revenue);
+        addRatingChip(key, "票房", formatted, 0xFF9C27B0);
+    }
+
+    private String formatBoxOffice(long revenue) {
+        if (revenue >= 1_000_000_000) {
+            return String.format(Locale.US, "$%.2fB", revenue / 1_000_000_000.0);
+        } else if (revenue >= 1_000_000) {
+            return String.format(Locale.US, "$%.2fM", revenue / 1_000_000.0);
+        } else {
+            return String.format(Locale.US, "$%,d", revenue);
         }
     }
 
