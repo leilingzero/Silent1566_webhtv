@@ -150,7 +150,7 @@ import java.util.Set;
 public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.Listener, TrackDialog.Listener, ArrayAdapter.OnClickListener, FlagAdapter.OnClickListener, EpisodeAdapter.OnClickListener, QualityAdapter.OnClickListener, QuickAdapter.OnClickListener, ParseAdapter.OnClickListener, Clock.Callback, SubtitlePlaybackSession.Host, com.fongmi.android.tv.ui.host.TmdbDetailHost {
 
     private static final int SHORT_DRAMA_SCALE = 0; // 0=原始(适合TV), 4=裁剪(适合手机)
-    private static final int TMDB_DETAIL_LOAD_TIMEOUT = 8000;
+    private static final int TMDB_DETAIL_LOAD_TIMEOUT = 15000;
     private static final int TMDB_OVERVIEW_ROW_GAP_DP = 12;
     private static final int TMDB_OVERVIEW_BOTTOM_GUARD_DP = 6;
     private static final int OMDB_FULL_RATING_TEXT_MAX_LENGTH = 20;

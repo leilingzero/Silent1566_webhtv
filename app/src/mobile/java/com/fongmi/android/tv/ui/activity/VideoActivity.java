@@ -189,6 +189,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private static final int TMDB_TABLET_PLAYER_GUTTER_DP = 16;
     private static final int TMDB_TABLET_PLAYER_TOP_MARGIN_DP = 16;
     private static final int TMDB_TABLET_SUMMARY_MIN_WIDTH_DP = 280;
+    private static final int TMDB_DETAIL_LOAD_TIMEOUT = 15000;
 
     private ActivityVideoBinding mBinding;
     private ViewGroup.LayoutParams mFrameParams;
@@ -241,6 +242,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private Runnable mR3;
     private Runnable mR4;
     private Runnable mSeekProgressFallback;
+    private Runnable mTmdbDetailTimeout;
     private Clock mClock;
     private PiP mPiP;
     private String mContextWallUrl;
@@ -736,6 +738,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     @Override
     protected void initView(Bundle savedInstanceState) {
+        mTmdbDetailTimeout = this::showTmdbDetailFallback;
         super.initView(savedInstanceState);
         ViewCompat.setOnApplyWindowInsetsListener(mBinding.getRoot(), (v, insets) -> setStatusBar(insets));
         mKeyDown = CustomKeyDown.create(this, mBinding.exo);
@@ -1144,6 +1147,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private void getDetail() {
         detailStartTime = System.currentTimeMillis();
         detailHealthRecorded = false;
+        cancelTmdbDetailFallback();
         SpiderDebug.log("video-flow", "detail start key=%s id=%s name=%s", getKey(), getId(), getName());
 
         // 显示加载指示器
@@ -1218,7 +1222,9 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             mBinding.search.setVisibility(View.GONE);
             if (mBinding.videoShadow != null) mBinding.videoShadow.setVisibility(View.GONE);
             mBinding.progressLayout.showProgress();
+            scheduleTmdbDetailFallback();
         } else {
+            cancelTmdbDetailFallback();
             restoreDefaultVideoLayout();
             restoreFlagAndEpisodeFromTmdb();
             setNativeDetailInfoVisible(true);
@@ -2476,6 +2482,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void onTmdbContentReady() {
         android.util.Log.d("VideoActivity", "TMDB 内容加载完成");
+        cancelTmdbDetailFallback();
         if (shouldUseTmdbBackdropSurface() && mTmdbHeaderView != null) {
             mTmdbHeaderView.hideNativeHeroBackdrop();
         }
@@ -3010,21 +3017,26 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             boolean loaded = mTmdbUIAdapter != null && mTmdbUIAdapter.isLoaded();
             android.util.Log.d("VideoActivity", "updateVod - TMDB isLoaded=" + loaded);
             if (loaded) {
-                mTmdbFallbackToNative = false;
-                hideNativePersonalRecommendations();
-                moveFlagAndEpisodeToTmdb();
-                mTmdbHeaderView.bind(mTmdbUIAdapter);
-                styleTmdbSourceInFlagTitle();
-                applyTmdbPlaybackControlColors();
-                applyFusionPlayerBelowSpacing();
-                updateTmdbKeepState();
-                requestIntroSkipPlan();
+                bindLoadedTmdbDetail();
             } else {
                 android.util.Log.d("VideoActivity", "TMDB 加载失败，回退到原生详情");
                 showNativeDetailFallback(item);
                 if (shouldShowAutoTmdbMatchDialog(item)) showManualTmdbMatchDialog();
             }
         }
+    }
+
+    private void bindLoadedTmdbDetail() {
+        if (mTmdbHeaderView == null || mTmdbUIAdapter == null || !mTmdbUIAdapter.isLoaded()) return;
+        mTmdbFallbackToNative = false;
+        hideNativePersonalRecommendations();
+        moveFlagAndEpisodeToTmdb();
+        mTmdbHeaderView.bind(mTmdbUIAdapter);
+        styleTmdbSourceInFlagTitle();
+        applyTmdbPlaybackControlColors();
+        applyFusionPlayerBelowSpacing();
+        updateTmdbKeepState();
+        requestIntroSkipPlan();
     }
 
     private void updateFlag(Flag activated, List<Flag> items) {
@@ -3858,7 +3870,26 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mTmdbHeaderView.getHeaderRoot().setVisibility(View.GONE);
     }
 
+    private void scheduleTmdbDetailFallback() {
+        App.post(mTmdbDetailTimeout, TMDB_DETAIL_LOAD_TIMEOUT);
+    }
+
+    private void cancelTmdbDetailFallback() {
+        App.removeCallbacks(mTmdbDetailTimeout);
+    }
+
+    private void showTmdbDetailFallback() {
+        if (mTmdbContentLoaded) return;
+        SpiderDebug.log("tmdb-mobile", "detail loading timeout fallback");
+        if (mTmdbUIAdapter != null && mTmdbUIAdapter.isLoaded()) {
+            bindLoadedTmdbDetail();
+            if (mTmdbContentLoaded) return;
+        }
+        if (mVod != null) showNativeDetailFallback(mVod);
+    }
+
     private void showNativeDetailFallback(Vod item) {
+        cancelTmdbDetailFallback();
         mTmdbFallbackToNative = true;
         mTmdbContentLoaded = true;
         hideTmdbHeader();
@@ -4099,6 +4130,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         hideTmdbHeader();
         if (mBinding.videoShadow != null) mBinding.videoShadow.setVisibility(View.GONE);
         mBinding.progressLayout.showProgress();
+        scheduleTmdbDetailFallback();
         mTmdbUIAdapter.rememberManualMatch(mVod, item);
         mTmdbUIAdapter.load(item, mVod);
         Notify.show(R.string.detail_tmdb_match_saved);
@@ -4647,7 +4679,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         Timer.get().reset();
         DanmakuApi.cancel();
         RefreshEvent.keep();
-        App.removeCallbacks(mR1, mR2, mR3, mR4, mSeekProgressFallback);
+        App.removeCallbacks(mR1, mR2, mR3, mR4, mSeekProgressFallback, mTmdbDetailTimeout);
         mViewModel.getResult().removeObserver(mObserveDetail);
         mViewModel.getPlayer().removeObserver(mObservePlayer);
         mViewModel.getSearch().removeObserver(mObserveSearch);
