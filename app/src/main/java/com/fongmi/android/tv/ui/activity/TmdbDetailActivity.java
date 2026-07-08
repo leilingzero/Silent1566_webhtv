@@ -306,6 +306,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     private float inlineGestureSpeed = 1.0f;
     private boolean inlineStartPositionApplied;
     private boolean inlineFirstReady;
+    private boolean inlineButtonsReordered;
     private boolean inlinePiPLayout;
     private boolean inlinePiPLayoutRequested;
     private boolean inlinePiPSourceFrozen;
@@ -5307,6 +5308,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         inlinePlaybackLoading = false;
         inlineStarted = true;
         inlineFirstReady = false;  // 重置标志,允许新播放首次 READY 时显示控制栏
+        inlineButtonsReordered = false;  // 重置标志,允许新播放重新排序按钮
         inlinePlaybackEpisode = selectedEpisode;
         inlinePlaybackKey = getKeyText();
         inlinePlaybackFlag = selectedFlag == null ? "" : selectedFlag.getFlag();
@@ -5655,9 +5657,19 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private void applyInlinePlayerButtonSettings() {
-        PlayerButtonSetting.applyOrder((ViewGroup) binding.playerActionRow.getChildAt(0), inlinePlayerButtonMap());
-        if (!Util.isMobile() || detailActionRoot == null) return;
-        PlayerButtonSetting.applyOrder(detailActionRoot.findViewById(R.id.container), mobileInlinePlayerButtonMap());
+        // 排序(removeView/addView)只在首次执行,避免播放中反复重排打乱焦点导航导致左右跳按钮;
+        // 隐藏偏好(applyVisibility)每次都应用,防止后续 updateMobileInlineButtons 按播放状态把用户隐藏的按钮重新显示。
+        // 与原生增强模式 applyActionButtonSettings(只排一次) / applyActionButtonVisibility(每帧) 的分离逻辑一致。
+        Map<String, View> inlineButtons = inlinePlayerButtonMap();
+        Map<String, View> mobileButtons = Util.isMobile() && detailActionRoot != null ? mobileInlinePlayerButtonMap() : null;
+        if (inlineButtonsReordered) {
+            PlayerButtonSetting.applyVisibility(inlineButtons);
+            if (mobileButtons != null) PlayerButtonSetting.applyVisibility(mobileButtons);
+            return;
+        }
+        PlayerButtonSetting.applyOrder((ViewGroup) binding.playerActionRow.getChildAt(0), inlineButtons);
+        if (mobileButtons != null) PlayerButtonSetting.applyOrder(detailActionRoot.findViewById(R.id.container), mobileButtons);
+        inlineButtonsReordered = true;
     }
 
     private Map<String, View> inlinePlayerButtonMap() {
