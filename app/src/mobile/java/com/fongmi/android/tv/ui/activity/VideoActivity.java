@@ -2532,9 +2532,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.osdDiagnostics.setVisibility(PlayerSetting.isOsdDiagnostics() && !player().isEmpty() ? View.VISIBLE : View.GONE);
         mBinding.control.osdDiagnostics.setAlpha(mOsd != null && mOsd.isDiagnosticsVisible() ? 1f : 0.72f);
         mBinding.control.parse.setVisibility(isFullscreen() && isUseParse() ? View.VISIBLE : View.GONE);
-        // 竖屏模式下隐藏底部控制栏（EXO、硬解等选项），避免界面拥挤
-        // 使用屏幕方向判断：只在横屏全屏时显示，竖屏全屏时隐藏
-        boolean isLandscapeFullscreen = isFullscreen() && ResUtil.isLand(this);
+        // 竖屏模式下隐藏底部控制栏（EXO、硬解等选项），避免界面拥挤。
+        // 判定去耦：以视频方向（player().isPortrait()，即 App 期望的全屏方向）为主判据，
+        // 不再依赖系统 Configuration 何时真正旋转完成——否则慢机型会在 300ms 自动唤出时踩空、
+        // 锁定方向的机型会永久看不到控制台。ResUtil.isLand 作为额外兜底（竖屏视频被强制横屏时）。
+        boolean isLandscapeFullscreen = isFullscreen() && (!player().isPortrait() || ResUtil.isLand(this));
         mBinding.control.action.getRoot().setVisibility(isLandscapeFullscreen || isFusionPlayerActionsDocked() ? View.VISIBLE : View.GONE);
         mBinding.control.right.lock.setVisibility(isFullscreen() ? View.VISIBLE : View.GONE);
         mBinding.control.info.setVisibility(player().isEmpty() ? View.GONE : View.VISIBLE);
