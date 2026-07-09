@@ -137,6 +137,7 @@ import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.PiP;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Task;
+import com.fongmi.android.tv.ui.utils.TmdbDetailLayoutUtils;
 import com.fongmi.android.tv.utils.TmdbEpisodeSorter;
 import com.fongmi.android.tv.utils.TmdbImageSelector;
 import com.fongmi.android.tv.utils.TmdbImageSaver;
@@ -692,7 +693,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
                     binding.headerBar.getPaddingRight(),
                     binding.headerBar.getPaddingBottom()
             );
-            if (!isCinemaMode()) setHeightDp(binding.heroSpacer, defaultHeroSpacerHeightDp());
+            if (!isCinemaMode()) TmdbDetailLayoutUtils.setHeightDp(binding.heroSpacer, defaultHeroSpacerHeightDp());
             return insets;
         });
         ViewCompat.requestApplyInsets(binding.root);
@@ -1363,7 +1364,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         applyBackdropSurface(colors);
         binding.backdropFill.setAlpha(backdropSlideAlpha());
         binding.backdrop.setAlpha(backdropSlideAlpha());
-        binding.backdropShade.setBackground(isCinemaMode() ? cinemaBackdropShade() : colorDrawable(colors.backdropShade));
+        binding.backdropShade.setBackground(isCinemaMode() ? cinemaBackdropShade() : TmdbDetailLayoutUtils.colorDrawable(colors.backdropShade));
         setCard(binding.contentPanel, colors.panel, colors.line);
         setPlayerCard(colors);
         setCard(binding.tmdbPanel, colors.panel, colors.line);
@@ -1491,16 +1492,16 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
     }
 
     private void applyDefaultDetailTemplate() {
-        setPaddingDp(binding.pageContent, 0, 0, 0, 28);
-        setHeightDp(binding.heroSpacer, defaultHeroSpacerHeightDp());
-        setWidthMatch(binding.contentPanel);
-        setWidthMatch(binding.tmdbSection);
-        setMarginsDp(binding.contentPanel, 16, 0, 16, 0);
-        setMarginsDp(binding.playerPanel, 16, isFusionMode() ? 22 : 14, 16, isFusionMode() ? 20 : 16);
-        setMarginsDp(binding.tmdbSection, 16, 16, 16, 0);
+        TmdbDetailLayoutUtils.setPaddingDp(binding.pageContent, 0, 0, 0, 28);
+        TmdbDetailLayoutUtils.setHeightDp(binding.heroSpacer, defaultHeroSpacerHeightDp());
+        TmdbDetailLayoutUtils.setWidthMatch(binding.contentPanel);
+        TmdbDetailLayoutUtils.setWidthMatch(binding.tmdbSection);
+        TmdbDetailLayoutUtils.setMarginsDp(binding.contentPanel, 16, 0, 16, 0);
+        TmdbDetailLayoutUtils.setMarginsDp(binding.playerPanel, 16, isFusionMode() ? 22 : 14, 16, isFusionMode() ? 20 : 16);
+        TmdbDetailLayoutUtils.setMarginsDp(binding.tmdbSection, 16, 16, 16, 0);
         binding.contentPanel.setRadius(ResUtil.dp2px(20));
         binding.tmdbPanel.setRadius(ResUtil.dp2px(20));
-        setPaddingDp(binding.contentInner, 16, 16, 16, 16);
+        TmdbDetailLayoutUtils.setPaddingDp(binding.contentInner, 16, 16, 16, 16);
         setTmdbPanelInnerPaddingDp(16, 16, 16, 16);
         binding.heroRow.setOrientation(LinearLayout.HORIZONTAL);
         binding.heroRow.setGravity(0);
@@ -1511,18 +1512,18 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         infoParams.setMarginStart(ResUtil.dp2px(14));
         binding.detailInfo.setLayoutParams(infoParams);
-        setWidthMatch(binding.detailActions);
-        setWidthMatch(binding.flagHeader);
-        setWidthMatch(binding.flagScroll);
+        TmdbDetailLayoutUtils.setWidthMatch(binding.detailActions);
+        TmdbDetailLayoutUtils.setWidthMatch(binding.flagHeader);
+        TmdbDetailLayoutUtils.setWidthMatch(binding.flagScroll);
         binding.title.setTextSize(28f);
         binding.overview.setTextSize(13f);
-        setHeightDp(binding.episodePhotoList, 124);
-        setHeightDp(binding.castList, 180);
-        setHeightDp(binding.creatorList, 180);
-        setHeightDp(binding.relatedList, 262);
-        setHeightDp(binding.personalTmdbList, 262);
-        setHeightDp(binding.personalDoubanList, 262);
-        setHeightDp(binding.personalAiList, 262);
+        TmdbDetailLayoutUtils.setHeightDp(binding.episodePhotoList, 124);
+        TmdbDetailLayoutUtils.setHeightDp(binding.castList, 180);
+        TmdbDetailLayoutUtils.setHeightDp(binding.creatorList, 180);
+        TmdbDetailLayoutUtils.setHeightDp(binding.relatedList, 262);
+        TmdbDetailLayoutUtils.setHeightDp(binding.personalTmdbList, 262);
+        TmdbDetailLayoutUtils.setHeightDp(binding.personalDoubanList, 262);
+        TmdbDetailLayoutUtils.setHeightDp(binding.personalAiList, 262);
     }
 
     private int defaultHeroSpacerHeightDp() {
@@ -1536,15 +1537,15 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         boolean compact = isCompactWidth();
         int side = ResUtil.dp2px(compact ? 18 : 56);
         int topWidth = compact ? ViewGroup.LayoutParams.MATCH_PARENT : Math.min(ResUtil.dp2px(760), (int) (getResources().getDisplayMetrics().widthPixels * 0.54f));
-        setPaddingDp(binding.pageContent, 0, 0, 0, 44);
-        setHeightDp(binding.heroSpacer, compact ? 50 : 28);
-        setWidthMatch(binding.contentPanel);
-        setWidthMatch(binding.tmdbSection);
-        setMarginsPx(binding.contentPanel, side, compact ? 6 : 18, side, 0);
-        setMarginsPx(binding.tmdbSection, side, compact ? 22 : 24, side, 0);
+        TmdbDetailLayoutUtils.setPaddingDp(binding.pageContent, 0, 0, 0, 44);
+        TmdbDetailLayoutUtils.setHeightDp(binding.heroSpacer, compact ? 50 : 28);
+        TmdbDetailLayoutUtils.setWidthMatch(binding.contentPanel);
+        TmdbDetailLayoutUtils.setWidthMatch(binding.tmdbSection);
+        TmdbDetailLayoutUtils.setMarginsPx(binding.contentPanel, side, compact ? 6 : 18, side, 0);
+        TmdbDetailLayoutUtils.setMarginsPx(binding.tmdbSection, side, compact ? 22 : 24, side, 0);
         binding.contentPanel.setRadius(0);
         binding.tmdbPanel.setRadius(0);
-        setPaddingDp(binding.contentInner, 0, 0, 0, 0);
+        TmdbDetailLayoutUtils.setPaddingDp(binding.contentInner, 0, 0, 0, 0);
         setTmdbPanelInnerPaddingDp(0, 0, 0, 0);
         binding.heroRow.setOrientation(LinearLayout.HORIZONTAL);
         binding.heroRow.setGravity(compact ? 0 : android.view.Gravity.CENTER_VERTICAL);
@@ -1559,21 +1560,21 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
                 : new LinearLayout.LayoutParams(topWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
         infoParams.setMarginStart(compact ? ResUtil.dp2px(14) : 0);
         binding.detailInfo.setLayoutParams(infoParams);
-        if (compact) setWidthMatch(binding.detailActions);
-        else setWidthPx(binding.detailActions, topWidth);
-        setWidthMatch(binding.flagHeader);
-        setWidthMatch(binding.flagScroll);
+        if (compact) TmdbDetailLayoutUtils.setWidthMatch(binding.detailActions);
+        else TmdbDetailLayoutUtils.setWidthPx(binding.detailActions, topWidth);
+        TmdbDetailLayoutUtils.setWidthMatch(binding.flagHeader);
+        TmdbDetailLayoutUtils.setWidthMatch(binding.flagScroll);
         binding.title.setTextSize(compact ? 32f : 44f);
         binding.subtitle.setTextSize(compact ? 13f : 14f);
         binding.overview.setTextSize(compact ? 14.5f : 16f);
         binding.overview.setLineSpacing(ResUtil.dp2px(compact ? 4 : 3), 1f);
-        setHeightDp(binding.episodePhotoList, compact ? 128 : 160);
-        setHeightDp(binding.castList, compact ? 90 : 90);
-        setHeightDp(binding.creatorList, compact ? 90 : 90);
-        setHeightDp(binding.relatedList, compact ? 160 : 160);
-        setHeightDp(binding.personalTmdbList, compact ? 160 : 160);
-        setHeightDp(binding.personalDoubanList, compact ? 160 : 160);
-        setHeightDp(binding.personalAiList, compact ? 160 : 160);
+        TmdbDetailLayoutUtils.setHeightDp(binding.episodePhotoList, compact ? 128 : 160);
+        TmdbDetailLayoutUtils.setHeightDp(binding.castList, compact ? 90 : 90);
+        TmdbDetailLayoutUtils.setHeightDp(binding.creatorList, compact ? 90 : 90);
+        TmdbDetailLayoutUtils.setHeightDp(binding.relatedList, compact ? 160 : 160);
+        TmdbDetailLayoutUtils.setHeightDp(binding.personalTmdbList, compact ? 160 : 160);
+        TmdbDetailLayoutUtils.setHeightDp(binding.personalDoubanList, compact ? 160 : 160);
+        TmdbDetailLayoutUtils.setHeightDp(binding.personalAiList, compact ? 160 : 160);
         if (castAdapter != null) castAdapter.setCinema(true);
         if (creatorAdapter != null) creatorAdapter.setCinema(true);
         if (relatedAdapter != null) relatedAdapter.setCinema(true);
@@ -1586,48 +1587,11 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         return getResources().getConfiguration().smallestScreenWidthDp < 600;
     }
 
-    private void setPaddingDp(View view, int left, int top, int right, int bottom) {
-        view.setPadding(ResUtil.dp2px(left), ResUtil.dp2px(top), ResUtil.dp2px(right), ResUtil.dp2px(bottom));
-    }
-
     private void setTmdbPanelInnerPaddingDp(int left, int top, int right, int bottom) {
         if (binding.tmdbPanel.getChildCount() > 0) {
             View inner = binding.tmdbPanel.getChildAt(0);
-            setPaddingDp(inner, left, top, right, bottom);
+            TmdbDetailLayoutUtils.setPaddingDp(inner, left, top, right, bottom);
         }
-    }
-
-    private void setMarginsDp(View view, int left, int top, int right, int bottom) {
-        setMarginsPx(view, ResUtil.dp2px(left), ResUtil.dp2px(top), ResUtil.dp2px(right), ResUtil.dp2px(bottom));
-    }
-
-    private void setMarginsPx(View view, int left, int top, int right, int bottom) {
-        ViewGroup.LayoutParams params = view.getLayoutParams();
-        if (!(params instanceof ViewGroup.MarginLayoutParams marginParams)) return;
-        marginParams.setMargins(left, top, right, bottom);
-        view.setLayoutParams(marginParams);
-    }
-
-    private void setHeightDp(View view, int height) {
-        ViewGroup.LayoutParams params = view.getLayoutParams();
-        params.height = ResUtil.dp2px(height);
-        view.setLayoutParams(params);
-    }
-
-    private void setWidthPx(View view, int width) {
-        ViewGroup.LayoutParams params = view.getLayoutParams();
-        params.width = width;
-        view.setLayoutParams(params);
-    }
-
-    private void setWidthMatch(View view) {
-        ViewGroup.LayoutParams params = view.getLayoutParams();
-        params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-        view.setLayoutParams(params);
-    }
-
-    private Drawable colorDrawable(int color) {
-        return new android.graphics.drawable.ColorDrawable(color);
     }
 
     private Drawable cinemaBackdropShade() {
