@@ -1161,7 +1161,7 @@ public class VideoActivityLayoutTest {
             Element action = findAndroidId(layoutPath.toFile(), id);
             assertTrue(layoutPath + " is missing @+id/" + id, action != null);
             assertTrue(id + " must use the shared TMDB header action width",
-                    "72dp".equals(action.getAttribute("android:minWidth")));
+                    "60dp".equals(action.getAttribute("android:minWidth")));
         }
     }
 
