@@ -28,7 +28,7 @@ on:
       sync_cnb:
         description: "Upload APKs to CNB Release and sync JSON manifests"
         required: false
-        default: true
+        default: false
         type: boolean
 
 permissions:
