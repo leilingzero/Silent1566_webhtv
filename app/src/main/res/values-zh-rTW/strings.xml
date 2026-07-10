@@ -1103,6 +1103,14 @@
     <string name="update_status_unavailable">暫無</string>
     <string name="update_expand">展開</string>
     <string name="update_collapse">收起</string>
+    <string name="update_backup_title">更新前備份</string>
+    <string name="update_backup_message">建議在更新前備份當前配置，以便更新後出現問題時可以恢復。是否先備份？</string>
+    <string name="update_backup_positive">備份並更新</string>
+    <string name="update_backup_negative">直接更新</string>
+    <string name="update_backup_running">正在備份…</string>
+    <string name="update_backup_done">備份完成，開始更新</string>
+    <string name="update_backup_failed">備份失敗，仍將繼續更新</string>
+    <string name="update_backup_permission_denied">未授予儲存權限，無法備份，仍將繼續更新</string>
 
     <!-- Crash -->
     <string name="crash_info">發生意外錯誤\n抱歉給您帶來不便</string>

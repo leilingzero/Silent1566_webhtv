@@ -1137,6 +1137,14 @@
     <string name="update_status_unavailable">Unavailable</string>
     <string name="update_expand">Expand</string>
     <string name="update_collapse">Collapse</string>
+    <string name="update_backup_title">Backup Before Update</string>
+    <string name="update_backup_message">It is recommended to backup your current configuration before updating. Would you like to backup first?</string>
+    <string name="update_backup_positive">Backup &amp; Update</string>
+    <string name="update_backup_negative">Update Directly</string>
+    <string name="update_backup_running">Backing up…</string>
+    <string name="update_backup_done">Backup completed, starting update</string>
+    <string name="update_backup_failed">Backup failed, will continue update anyway</string>
+    <string name="update_backup_permission_denied">Storage permission denied, cannot backup, will continue update anyway</string>
 
     <!-- Crash -->
     <string name="crash_info">An unexpected error occurred.\nSorry for the inconvenience.</string>
