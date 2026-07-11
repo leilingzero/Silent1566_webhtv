@@ -10,6 +10,19 @@ import java.util.stream.Collectors;
 
 public class RuleConfig {
 
+    public static class DefaultRuleEntry {
+        private final Rule rule;
+        private final String source;
+
+        DefaultRuleEntry(Rule rule, String source) {
+            this.rule = rule;
+            this.source = source;
+        }
+
+        public Rule getRule() { return rule; }
+        public String getSource() { return source; }
+    }
+
     private List<String> ads = List.of();
     private List<Rule> rules = List.of();
     private boolean dirty;
@@ -40,6 +53,20 @@ public class RuleConfig {
         List<Rule> defaultRules = new ArrayList<>(VodConfig.get().getRules());
         defaultRules.addAll(LiveConfig.get().getRules());
         return defaultRules;
+    }
+
+    public List<DefaultRuleEntry> getDefaultRuleEntries() {
+        List<DefaultRuleEntry> entries = new ArrayList<>();
+        String vodSource = formatSource("点播接口", VodConfig.get().getConfig().getName(), VodConfig.get().getConfig().getUrl());
+        String liveSource = formatSource("直播接口", LiveConfig.get().getConfig().getName(), LiveConfig.get().getConfig().getUrl());
+        for (Rule rule : VodConfig.get().getRules()) entries.add(new DefaultRuleEntry(rule, vodSource));
+        for (Rule rule : LiveConfig.get().getRules()) entries.add(new DefaultRuleEntry(rule, liveSource));
+        return entries;
+    }
+
+    static String formatSource(String type, String name, String url) {
+        String detail = name != null && !name.trim().isEmpty() ? name.trim() : url == null ? "" : url.trim();
+        return detail.isEmpty() ? type : type + " · " + detail;
     }
 
     private void merge() {

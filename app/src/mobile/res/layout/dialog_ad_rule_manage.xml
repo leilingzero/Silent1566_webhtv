@@ -31,6 +31,20 @@
         app:backgroundTint="@color/dialog_outlined_button_bg"
         app:strokeColor="@color/dialog_outlined_button_stroke" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/importCandidates"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/dialog_outlined_button_text"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:backgroundTint="@color/dialog_outlined_button_bg"
+        app:strokeColor="@color/dialog_outlined_button_stroke"
+        tools:text="待审核接口规则（2）"
+        tools:visibility="visible" />
+
     <com.google.android.material.textview.MaterialTextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

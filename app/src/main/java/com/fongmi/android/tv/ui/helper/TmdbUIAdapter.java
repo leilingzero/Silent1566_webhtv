@@ -35,8 +35,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * TMDB 数据适配器
@@ -731,26 +733,29 @@ public class TmdbUIAdapter {
             List<TmdbEpisode> episodes = tmdbService.episodes(season, tmdbConfig, item.getTmdbId(), seasonNumber);
             if (episodes.isEmpty()) return false;
 
-            // 先排序集数
-            com.fongmi.android.tv.utils.TmdbEpisodeSorter.sort(vod);
-
-            // 应用标题到每个 Episode
+            // 线路集号可靠时按显式集号匹配；出现重复、缺失或越界时按原始顺序匹配。
             boolean changed = false;
             for (Flag flag : vod.getFlags()) {
-                for (Episode episode : flag.getEpisodes()) {
-                    TmdbEpisode tmdbEp = findEpisodeByNumber(episodes, episode.getNumber());
-                    if (tmdbEp != null) {
-                        if (episode.getTmdbEpisode() == null) changed = true;
-                        episode.setTmdbEpisode(tmdbEp);
-                        if (!tmdbEp.getTitle().isEmpty()) {
-                            String displayName = EpisodeTitleFormatter.withSourceFileSize(episode.getName(), EpisodeTitleFormatter.formatTmdbTitle(episode.getNumber(), tmdbEp.getTitle()), Setting.isTmdbEpisodeFileSize());
-                            if (TextUtils.equals(episode.getDisplayName(), displayName)) continue;
-                            episode.setDisplayName(displayName);
-                            changed = true;
-                        }
+                List<Episode> sourceEpisodes = flag.getEpisodes();
+                boolean usePosition = shouldUseEpisodePosition(sourceEpisodes, episodes);
+                for (int index = 0; index < sourceEpisodes.size(); index++) {
+                    Episode episode = sourceEpisodes.get(index);
+                    int resolvedNumber = resolveEpisodeNumber(episode, index, usePosition);
+                    TmdbEpisode tmdbEp = findEpisodeByNumber(episodes, resolvedNumber);
+                    if (tmdbEp == null) continue;
+                    if (hasEpisodeMetadataChanged(episode.getTmdbEpisode(), tmdbEp)) changed = true;
+                    episode.setTmdbEpisode(tmdbEp);
+                    if (!tmdbEp.getTitle().isEmpty()) {
+                        String displayName = EpisodeTitleFormatter.withSourceFileSize(episode.getName(), EpisodeTitleFormatter.formatTmdbTitle(tmdbEp.getNumber(), tmdbEp.getTitle()), Setting.isTmdbEpisodeFileSize());
+                        if (TextUtils.equals(episode.getDisplayName(), displayName)) continue;
+                        episode.setDisplayName(displayName);
+                        changed = true;
                     }
                 }
             }
+
+            // 元数据已按线路原始顺序绑定，再执行显示排序，避免无效集号改变位置回退结果。
+            com.fongmi.android.tv.utils.TmdbEpisodeSorter.sort(vod);
             SpiderDebug.log("tmdb", "应用集数标题: %d 集", episodes.size());
             return changed;
         } catch (Exception e) {
@@ -759,7 +764,36 @@ public class TmdbUIAdapter {
         }
     }
 
-    private TmdbEpisode findEpisodeByNumber(List<TmdbEpisode> episodes, int number) {
+    static boolean shouldUseEpisodePosition(List<Episode> sourceEpisodes, List<TmdbEpisode> tmdbEpisodes) {
+        if (sourceEpisodes == null || sourceEpisodes.isEmpty() || tmdbEpisodes == null || tmdbEpisodes.isEmpty()) return false;
+        Set<Integer> numbers = new HashSet<>();
+        for (Episode episode : sourceEpisodes) {
+            int number = episode == null ? -1 : episode.getNumber();
+            if (number <= 0 || !numbers.add(number) || findEpisodeByNumber(tmdbEpisodes, number) == null) return true;
+        }
+        return false;
+    }
+
+    static int resolveEpisodeNumber(Episode episode, int position, boolean usePosition) {
+        if (episode == null) return -1;
+        return usePosition ? position + 1 : episode.getNumber();
+    }
+
+    static boolean hasEpisodeMetadataChanged(TmdbEpisode current, TmdbEpisode updated) {
+        if (current == updated) return false;
+        if (current == null || updated == null) return true;
+        return current.getNumber() != updated.getNumber()
+                || !TextUtils.equals(current.getTitle(), updated.getTitle())
+                || !TextUtils.equals(current.getDate(), updated.getDate())
+                || !TextUtils.equals(current.getOverview(), updated.getOverview())
+                || !TextUtils.equals(current.getStillUrl(), updated.getStillUrl())
+                || Double.compare(current.getVoteAverage(), updated.getVoteAverage()) != 0
+                || current.getRuntime() != updated.getRuntime()
+                || current.getTmdbId() != updated.getTmdbId()
+                || current.getSeasonNumber() != updated.getSeasonNumber();
+    }
+
+    private static TmdbEpisode findEpisodeByNumber(List<TmdbEpisode> episodes, int number) {
         for (TmdbEpisode ep : episodes) {
             if (ep.getNumber() == number) return ep;
         }

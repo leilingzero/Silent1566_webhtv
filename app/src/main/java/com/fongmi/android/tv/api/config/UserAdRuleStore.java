@@ -20,7 +20,7 @@ public class UserAdRuleStore {
     private static final String PREF_KEY = "user_ad_rules";
     private static final Type LIST_TYPE = new TypeToken<List<UserAdRule>>() {}.getType();
 
-    public static List<UserAdRule> load() {
+    public static synchronized List<UserAdRule> load() {
         String json = Prefers.getString(PREF_KEY, "[]");
         try {
             List<UserAdRule> rules = App.gson().fromJson(json, LIST_TYPE);
@@ -30,12 +30,12 @@ public class UserAdRuleStore {
         }
     }
 
-    public static void save(List<UserAdRule> rules) {
+    public static synchronized void save(List<UserAdRule> rules) {
         Prefers.put(PREF_KEY, App.gson().toJson(rules == null ? new ArrayList<>() : rules));
         RuleConfig.get().invalidate();
     }
 
-    public static void add(UserAdRule rule) {
+    public static synchronized void add(UserAdRule rule) {
         if (rule == null) return;
         List<UserAdRule> rules = load();
         rules.add(rule);
@@ -44,12 +44,21 @@ public class UserAdRuleStore {
 
     public static void delete(String id) {
         if (id == null) return;
-        List<UserAdRule> rules = load();
-        rules.removeIf(r -> id.equals(r.getId()));
-        save(rules);
+        UserAdRule removed = null;
+        synchronized (UserAdRuleStore.class) {
+            List<UserAdRule> rules = load();
+            for (int i = 0; i < rules.size(); i++) {
+                if (id.equals(rules.get(i).getId())) {
+                    removed = rules.remove(i);
+                    break;
+                }
+            }
+            if (removed != null) save(rules);
+        }
+        if (removed != null) ImportedAdRuleCandidateStore.reopen(removed.getImportedCandidateId());
     }
 
-    public static void update(UserAdRule rule) {
+    public static synchronized void update(UserAdRule rule) {
         if (rule == null || rule.getId() == null) return;
         List<UserAdRule> rules = load();
         for (int i = 0; i < rules.size(); i++) {
@@ -78,6 +87,7 @@ public class UserAdRuleStore {
     public static List<String> toAds() {
         return load().stream()
                 .filter(UserAdRule::isEnabled)
+                .filter(r -> !UserAdRule.SOURCE_INTERFACE_RULE.equals(r.getSource()))
                 .flatMap(r -> r.getHosts().stream())
                 .filter(h -> h != null && !h.trim().isEmpty())
                 .distinct()

@@ -2,10 +2,14 @@ package com.fongmi.android.tv.ui.dialog;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
@@ -72,6 +76,41 @@ public class AdRuleEditDialog extends BaseAlertDialog {
     protected void initEvent() {
         binding.confirm.setOnClickListener(v -> onConfirm());
         binding.cancel.setOnClickListener(v -> dismiss());
+        wireTextDpadFocus(binding.name, null, binding.hosts);
+        wireTextDpadFocus(binding.hosts, binding.name, binding.regex);
+        wireTextDpadFocus(binding.regex, binding.hosts, binding.exclude);
+        wireTextDpadFocus(binding.exclude, binding.regex, binding.confirm);
+        wireDpadFocus(binding.cancel, binding.exclude, null, null, binding.confirm);
+        wireDpadFocus(binding.confirm, binding.exclude, null, binding.cancel, null);
+    }
+
+    private static void wireTextDpadFocus(EditText view, View up, View down) {
+        if (view == null) return;
+        view.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && up != null) return requestFocus(up);
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && down != null) return requestFocus(down);
+            return false;
+        });
+    }
+
+    private static void wireDpadFocus(View view, View up, View down, View left, View right) {
+        if (view == null) return;
+        view.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && up != null) return requestFocus(up);
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && down != null) return requestFocus(down);
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && left != null) return requestFocus(left);
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && right != null) return requestFocus(right);
+            return false;
+        });
+    }
+
+    private static boolean requestFocus(View view) {
+        if (view == null || view.getVisibility() != View.VISIBLE || !view.isEnabled()) return false;
+        boolean focused = view.requestFocus();
+        if (focused) view.post(() -> view.requestRectangleOnScreen(new Rect(0, 0, view.getWidth(), view.getHeight()), false));
+        return focused;
     }
 
     private void onConfirm() {
@@ -139,11 +178,11 @@ public class AdRuleEditDialog extends BaseAlertDialog {
         boolean land = ResUtil.isLand(requireContext());
         int width = Math.min(Math.round(ResUtil.getScreenWidth(requireContext()) * (land ? 0.7f : 0.95f)), ResUtil.dp2px(640));
         params.width = Math.max(width, ResUtil.dp2px(320));
-        params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        params.height = Math.min(ResUtil.dp2px(680), Math.round(ResUtil.getScreenHeight(requireContext()) * 0.9f));
         params.gravity = Gravity.CENTER;
         window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         window.getDecorView().setPadding(0, 0, 0, 0);
         window.setAttributes(params);
-        window.setLayout(params.width, WindowManager.LayoutParams.WRAP_CONTENT);
+        window.setLayout(params.width, params.height);
     }
 }

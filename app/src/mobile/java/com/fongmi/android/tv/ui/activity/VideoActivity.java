@@ -2050,6 +2050,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             int viewType = useTmdbCard && !mEpisodeGridMode ? ViewType.HORI : ViewType.GRID;
             mEpisodeAdapter = new EpisodeAdapter(this, viewType, items);
             mEpisodeAdapter.setUseTmdbCard(useTmdbCard);
+            updateEpisodeFallbackStillUrl();
             mBinding.episode.setAdapter(mEpisodeAdapter);
             scrollToPosition(mBinding.episode, position);
         } else {

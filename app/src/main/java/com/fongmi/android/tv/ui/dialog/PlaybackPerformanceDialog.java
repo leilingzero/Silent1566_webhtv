@@ -109,6 +109,7 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
         actions.addView(actionButton(R.string.player_performance_recommended, view -> apply(PlaybackPerformanceSetting.PROFILE_RECOMMENDED)), actionParams(true));
         actions.addView(actionButton(R.string.player_performance_compatible, view -> apply(PlaybackPerformanceSetting.PROFILE_COMPATIBLE)), actionParams(false));
         actions.addView(actionButton(R.string.player_performance_lightweight, view -> apply(PlaybackPerformanceSetting.PROFILE_LIGHTWEIGHT)), actionParams(false));
+        actions.addView(actionButton(R.string.player_performance_original, view -> apply(PlaybackPerformanceSetting.PROFILE_ORIGINAL)), actionParams(false));
         LinearLayout.LayoutParams actionLayout = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40));
         actionLayout.topMargin = dp(14);
         root.addView(actions, actionLayout);
@@ -167,10 +168,10 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
         scrollParams.topMargin = dp(10);
         root.addView(scroll, scrollParams);
 
-        addHelpIntro(content, "这些选项主要影响 EXO / Media3 播放，部分缓存选项也会作用于 MPV。通常先使用“推荐”；遇到黑屏、无声、卡顿、发热、内存不足或老设备兼容问题时，再参考下方逐项调整。多数选项需重新进入播放后生效。\n\n“推荐”偏向画质、流畅度和预载能力；“兼容”减少实验特性，适合解码器不稳定的设备；“轻量”面向低内存电视，降低内存缓冲、磁盘缓存、预载和后台连接占用。“重置”会覆盖自定义值：当前为兼容或轻量预设时恢复对应默认，其余情况恢复推荐默认。");
+        addHelpIntro(content, "这些选项主要影响 EXO / Media3 播放，部分缓存选项也会作用于 MPV。通常先使用“推荐”；遇到黑屏、无声、卡顿、发热、内存不足或老设备兼容问题时，再参考下方逐项调整。多数选项需重新进入播放后生效。\n\n“推荐”偏向画质、流畅度和预载能力；“兼容”减少实验特性，适合解码器不稳定的设备；“轻量”面向低内存电视，降低内存缓冲、磁盘缓存、预载和后台连接占用；“原版默认”恢复播放性能设置引入前的参数，用于复现旧版行为。“重置”会覆盖自定义值：当前为兼容、轻量或原版默认预设时恢复对应默认，其余情况恢复推荐默认。");
 
         addHelpSection(content, "基础性能");
-        addHelpItem(content, "性能配置", "显示当前预设。推荐：功能更完整、画质和抗卡顿能力更强，但占用更多内存、网络与存储；兼容：关闭部分实验调度，优先解决旧设备或异常解码器的兼容问题；轻量：只加载选中轨道，使用 64MB 缓冲容量、关闭回退缓冲和预载，并把播放缓存降到 128MB，适合低内存电视；自定义：表示已有参数被单独修改。");
+        addHelpItem(content, "性能配置", "显示当前预设。推荐：功能更完整、画质和抗卡顿能力更强，但占用更多内存、网络与存储；兼容：关闭部分实验调度，优先解决旧设备或异常解码器的兼容问题；轻量：只加载选中轨道，使用 64MB 缓冲容量、关闭回退缓冲和预载，并把播放缓存降到 128MB，适合低内存电视；原版默认：还原播放性能设置引入前的旧版参数；自定义：表示已有参数被单独修改。");
         addHelpItem(content, "渲染方式", "SurfaceView 直接交给系统合成，通常更省电、更适合高分辨率和隧道模式，但界面叠加、截图及部分机型切换画面可能受限。TextureView 更灵活、兼容动画和缩放，但会增加 GPU 开销，并会关闭隧道模式。");
         addHelpItem(content, "视频轨道限制", "开启后按屏幕和硬件解码能力限制分辨率、帧率与码率，可避免选到设备带不动的轨道；代价是可能不会播放源中最高画质。关闭后优先最高支持码率，画质上限更高，但更容易卡顿、掉帧或解码失败。");
         addHelpItem(content, "自适应降级", "开启后遇到重缓冲、连续掉帧或带宽不足时，会在本次播放中逐级降低视频规格，稳定性更好；代价是画质可能下降，且不会自动升回。关闭可保持选定画质，但网络或性能不足时更容易持续卡顿。");
@@ -315,18 +316,18 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
     }
 
     private void apply(int profile) {
-        if (profile == PlaybackPerformanceSetting.PROFILE_COMPATIBLE) PlaybackPerformanceSetting.applyCompatible();
-        else if (profile == PlaybackPerformanceSetting.PROFILE_LIGHTWEIGHT) PlaybackPerformanceSetting.applyLightweight();
-        else PlaybackPerformanceSetting.applyRecommended();
+        switch (profile) {
+            case PlaybackPerformanceSetting.PROFILE_COMPATIBLE -> PlaybackPerformanceSetting.applyCompatible();
+            case PlaybackPerformanceSetting.PROFILE_LIGHTWEIGHT -> PlaybackPerformanceSetting.applyLightweight();
+            case PlaybackPerformanceSetting.PROFILE_ORIGINAL -> PlaybackPerformanceSetting.applyOriginal();
+            default -> PlaybackPerformanceSetting.applyRecommended();
+        }
         refresh();
     }
 
     private void reset() {
         int profile = PlaybackPerformanceSetting.getProfile();
-        if (profile == PlaybackPerformanceSetting.PROFILE_COMPATIBLE) PlaybackPerformanceSetting.applyCompatible();
-        else if (profile == PlaybackPerformanceSetting.PROFILE_LIGHTWEIGHT) PlaybackPerformanceSetting.applyLightweight();
-        else PlaybackPerformanceSetting.applyRecommended();
-        refresh();
+        apply(profile == PlaybackPerformanceSetting.PROFILE_CUSTOM ? PlaybackPerformanceSetting.PROFILE_RECOMMENDED : profile);
     }
 
     private void refresh() {

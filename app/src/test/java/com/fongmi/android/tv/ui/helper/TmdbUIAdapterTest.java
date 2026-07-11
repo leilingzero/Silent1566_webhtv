@@ -1,5 +1,7 @@
 package com.fongmi.android.tv.ui.helper;
 
+import com.fongmi.android.tv.bean.Episode;
+import com.fongmi.android.tv.bean.TmdbEpisode;
 import com.fongmi.android.tv.bean.TmdbItem;
 import com.fongmi.android.tv.bean.Vod;
 
@@ -8,8 +10,11 @@ import org.junit.Test;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TmdbUIAdapterTest {
@@ -23,6 +28,42 @@ public class TmdbUIAdapterTest {
         assertTrue(TmdbUIAdapter.applyTmdbTitle(vod, item));
 
         assertEquals("刮削后的标题", vod.getName());
+    }
+
+    @Test
+    public void episodeLineMappingFallsBackToPositionWhenSourceNumbersRepeat() {
+        List<TmdbEpisode> tmdbEpisodes = new ArrayList<>();
+        for (int number = 1; number <= 8; number++) {
+            tmdbEpisodes.add(new TmdbEpisode(number, "Episode " + number, "", "", "https://image.test/" + number + ".jpg", 0, 0));
+        }
+        List<Episode> repeatedNumberLine = List.of(
+                Episode.create("S01E01", "https://source.test/1"),
+                Episode.create("S01E02", "https://source.test/2"),
+                Episode.create("S01E03", "https://source.test/3"),
+                Episode.create("S01E04", "https://source.test/4"),
+                Episode.create("S01E04", "https://source.test/5"),
+                Episode.create("S01E05", "https://source.test/6"),
+                Episode.create("S01E06", "https://source.test/7"),
+                Episode.create("S01E06", "https://source.test/8"));
+        List<Episode> reliableLine = List.of(
+                Episode.create("E01", "https://other.test/1"),
+                Episode.create("E02", "https://other.test/2"),
+                Episode.create("E03", "https://other.test/3"),
+                Episode.create("E04", "https://other.test/4"),
+                Episode.create("E05", "https://other.test/5"),
+                Episode.create("E06", "https://other.test/6"),
+                Episode.create("E07", "https://other.test/7"),
+                Episode.create("E08", "https://other.test/8"));
+
+        assertTrue(TmdbUIAdapter.shouldUseEpisodePosition(repeatedNumberLine, tmdbEpisodes));
+        assertEquals(5, TmdbUIAdapter.resolveEpisodeNumber(repeatedNumberLine.get(4), 4, true));
+        assertFalse(TmdbUIAdapter.shouldUseEpisodePosition(reliableLine, tmdbEpisodes));
+        assertEquals(5, TmdbUIAdapter.resolveEpisodeNumber(reliableLine.get(4), 4, false));
+
+        TmdbEpisode cachedWithoutStill = new TmdbEpisode(5, "Episode 5", "", "", "", 0, 0);
+        TmdbEpisode refreshedWithStill = new TmdbEpisode(5, "Episode 5", "", "", "https://image.test/5.jpg", 0, 0);
+        assertTrue(TmdbUIAdapter.hasEpisodeMetadataChanged(cachedWithoutStill, refreshedWithStill));
+        assertFalse(TmdbUIAdapter.hasEpisodeMetadataChanged(refreshedWithStill, refreshedWithStill));
     }
 
     @Test

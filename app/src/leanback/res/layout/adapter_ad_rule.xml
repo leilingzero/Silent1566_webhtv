@@ -14,7 +14,10 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:background="?attr/selectableItemBackground"
+        android:background="@drawable/selector_light_dialog_item"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:orientation="vertical">
 
         <com.google.android.material.textview.MaterialTextView
@@ -23,7 +26,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:singleLine="true"
-            android:textColor="@color/white"
+            android:textColor="@color/dialog_outlined_button_text"
             android:textSize="15sp"
             tools:text="AI生成_1720000000000" />
 
@@ -34,7 +37,7 @@
             android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:singleLine="true"
-            android:textColor="@color/white_50"
+            android:textColor="#5F6368"
             android:textSize="13sp"
             tools:text="AI 生成 · 域名 2 · 广告规则 1" />
 
@@ -44,15 +47,22 @@
         android:id="@+id/toggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp" />
+        android:layout_marginStart="16dp"
+        android:background="@drawable/selector_dialog_switch"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
 
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/delete"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:background="@drawable/selector_dialog_switch"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:src="@drawable/ic_setting_delete"
-        app:tint="@color/white" />
+        app:tint="@color/dialog_outlined_button_text" />
 
 </androidx.appcompat.widget.LinearLayoutCompat>

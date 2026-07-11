@@ -169,10 +169,11 @@ public class SettingEnhanceFragment extends BaseFragment {
         safeRun("aiAdDetectionVisibility", () -> {
             int visibility = Setting.isAiConfigReady() ? View.VISIBLE : View.GONE;
             mBinding.aiAdDetection.setVisibility(visibility);
-            mBinding.adRuleManage.setVisibility(visibility);
         }, null);
         safeSet("aiAdDetection", mBinding.aiAdDetectionText, () -> getSwitch(Setting.isAiAdDetection()));
-        safeSet("adRuleManage", mBinding.adRuleManageText, () -> getString(R.string.ad_rule_count, com.fongmi.android.tv.api.config.UserAdRuleStore.load().size()));
+        safeSet("adRuleManage", mBinding.adRuleManageText, () -> getString(R.string.ad_rule_count_with_pending,
+                com.fongmi.android.tv.api.config.UserAdRuleStore.load().size() + com.fongmi.android.tv.api.config.RuleConfig.get().getDefaultRules().size(),
+                com.fongmi.android.tv.api.config.ImportedAdRuleCandidateStore.pending().size()));
         safeSet("detailInteractionMode", mBinding.detailInteractionModeText, this::getDetailOpenModeText);
         safeRun("detailThemeModeVisibility", () -> mBinding.detailThemeMode.setVisibility(Setting.isTmdbMode(Setting.getDetailOpenMode()) ? View.VISIBLE : View.GONE), null);
         safeSet("detailThemeMode", mBinding.detailThemeModeText, this::getDetailThemeModeText);

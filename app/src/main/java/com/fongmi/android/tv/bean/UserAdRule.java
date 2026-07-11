@@ -15,6 +15,8 @@ public class UserAdRule {
 
     public static final String SOURCE_AI = "ai";
     public static final String SOURCE_MANUAL = "manual";
+    public static final String SOURCE_INTERFACE_ADS = "interface_ads";
+    public static final String SOURCE_INTERFACE_RULE = "interface_rule";
 
     @SerializedName("id")
     private String id;
@@ -39,6 +41,12 @@ public class UserAdRule {
 
     @SerializedName("siteKey")
     private String siteKey; // 可选，标记规则适用站点
+
+    @SerializedName("sourceName")
+    private String sourceName;
+
+    @SerializedName("importedCandidateId")
+    private String importedCandidateId;
 
     @SerializedName("enabled")
     private boolean enabled = true; // 默认 true
@@ -66,6 +74,19 @@ public class UserAdRule {
         rule.hosts = new ArrayList<>();
         rule.regex = new ArrayList<>();
         rule.exclude = new ArrayList<>();
+        return rule;
+    }
+
+    public static UserAdRule fromImportedCandidate(ImportedAdRuleCandidate candidate) {
+        UserAdRule rule = new UserAdRule();
+        rule.name = candidate.getName();
+        rule.source = "ads".equals(candidate.getSourceType()) ? SOURCE_INTERFACE_ADS : SOURCE_INTERFACE_RULE;
+        rule.sourceName = candidate.getSourceConfigName();
+        rule.hosts = new ArrayList<>(candidate.getHosts());
+        rule.regex = new ArrayList<>(candidate.getRegex());
+        rule.exclude = new ArrayList<>(candidate.getExclude());
+        rule.importedCandidateId = candidate.getId();
+        rule.enabled = false;
         return rule;
     }
 
@@ -148,6 +169,22 @@ public class UserAdRule {
         this.siteKey = siteKey;
     }
 
+    public String getSourceName() {
+        return sourceName == null ? "" : sourceName;
+    }
+
+    public void setSourceName(String sourceName) {
+        this.sourceName = sourceName;
+    }
+
+    public String getImportedCandidateId() {
+        return importedCandidateId;
+    }
+
+    public void setImportedCandidateId(String importedCandidateId) {
+        this.importedCandidateId = importedCandidateId;
+    }
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -160,7 +197,8 @@ public class UserAdRule {
      * 列表摘要：来源 · 域名 N · 广告规则 N · 白名单 N
      */
     public String getSummary() {
-        String label = SOURCE_AI.equals(source) ? "AI 生成" : "手动添加";
+        String label = SOURCE_AI.equals(source) ? "AI 识别" : source != null && source.startsWith("interface_") ? "接口导入" : "手动添加";
+        if (!getSourceName().isEmpty()) label += " · " + getSourceName();
         return label + " · 域名 " + getHosts().size() + " · 广告规则 " + getRegex().size() + " · 白名单 " + getExclude().size();
     }
 }

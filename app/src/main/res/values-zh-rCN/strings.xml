@@ -909,6 +909,7 @@
     <string name="player_performance_recommended">推荐</string>
     <string name="player_performance_compatible">兼容</string>
     <string name="player_performance_lightweight">轻量</string>
+    <string name="player_performance_original">原版默认</string>
     <string name="player_performance_help">说明</string>
     <string name="player_performance_help_title">播放性能参数说明</string>
     <string name="player_performance_help_close">关闭</string>
@@ -1555,4 +1556,6 @@
     <string name="viewing_report_unit_minutes">分钟</string>
     <string name="viewing_report_unit_times">次</string>
 
+    <string name="ad_rule_delete_confirm">删除规则</string>
+    <string name="ad_rule_delete_message">确定删除“%1$s”吗？接口导入规则删除后可在待审核规则中重新导入。</string>
 </resources>

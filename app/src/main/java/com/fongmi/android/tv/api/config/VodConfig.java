@@ -132,6 +132,7 @@ public class VodConfig extends BaseConfig {
     @Override
     protected void onLoadSuccess() {
         CspWarmup.schedule("vod-config-loaded");
+        InterfaceAdRuleLearningService.schedule(getConfig().getDesc(), getConfig().getUrl(), getAds(), getRules());
     }
 
     private void checkJson(Config config, JsonObject object) throws Throwable {

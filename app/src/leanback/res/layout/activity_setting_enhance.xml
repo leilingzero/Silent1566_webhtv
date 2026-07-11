@@ -240,9 +240,7 @@
             android:background="@drawable/selector_item"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:orientation="horizontal"
-            android:visibility="gone"
-            tools:visibility="visible">
+            android:orientation="horizontal">
 
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="wrap_content"

@@ -120,6 +120,22 @@ public class VideoActivityLayoutTest {
     }
 
     @Test
+    public void mobileEpisodeNameToggleRestoresFallbackArtworkAfterAdapterRecreation() throws Exception {
+        Path sourcePath = findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"));
+        String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
+        int method = source.indexOf("private void toggleEpisodeFileName()");
+        int methodEnd = source.indexOf("private void updateEpisodeFileNameButton()", method);
+        String methodBody = method >= 0 && methodEnd > method ? source.substring(method, methodEnd) : "";
+        int recreateAdapter = methodBody.indexOf("mEpisodeAdapter = new EpisodeAdapter");
+        int restoreFallback = methodBody.indexOf("updateEpisodeFallbackStillUrl();", recreateAdapter);
+        int attachAdapter = methodBody.indexOf("mBinding.episode.setAdapter(mEpisodeAdapter);", recreateAdapter);
+
+        assertTrue(sourcePath + " is missing toggleEpisodeFileName", method >= 0);
+        assertTrue("name toggle must restore fallback artwork on the recreated episode adapter",
+                recreateAdapter >= 0 && restoreFallback > recreateAdapter && restoreFallback < attachAdapter);
+    }
+
+    @Test
     public void mobileVideoKeepsParseRowHiddenInEmbeddedPlayerWhenPlaybackStarts() throws Exception {
         Path sourcePath = findMobileJavaPath().resolve(Path.of("com", "fongmi", "android", "tv", "ui", "activity", "VideoActivity.java"));
         String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);

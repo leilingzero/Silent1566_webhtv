@@ -1,9 +1,14 @@
 package com.fongmi.android.tv.ui.dialog;
 
 import android.app.Activity;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Gravity;
+import android.view.Window;
+import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -15,6 +20,7 @@ import com.fongmi.android.tv.bean.AdBlockStats;
 import com.fongmi.android.tv.bean.RuleHitRecord;
 import com.fongmi.android.tv.databinding.DialogAdBlockStatsBinding;
 import com.fongmi.android.tv.impl.Callback;
+import com.fongmi.android.tv.utils.ResUtil;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
@@ -40,7 +46,7 @@ public class AdBlockStatsDialog {
     private AdBlockStatsDialog(Activity activity) {
         this.activity = activity;
         this.binding = DialogAdBlockStatsBinding.inflate(LayoutInflater.from(activity));
-        this.dialog = new MaterialAlertDialogBuilder(activity)
+        this.dialog = new MaterialAlertDialogBuilder(activity, R.style.ThemeOverlay_WebHTV_LightDialog)
                 .setView(binding.getRoot())
                 .create();
     }
@@ -49,6 +55,22 @@ public class AdBlockStatsDialog {
         initView();
         loadStats();
         dialog.show();
+        configureWindow();
+    }
+
+    private void configureWindow() {
+        Window window = dialog.getWindow();
+        if (window == null) return;
+        int width = Math.min(Math.round(ResUtil.getScreenWidth(activity) * 0.72f), ResUtil.dp2px(720));
+        int height = Math.min(Math.round(ResUtil.getScreenHeight(activity) * 0.82f), ResUtil.dp2px(680));
+        WindowManager.LayoutParams params = window.getAttributes();
+        params.width = Math.max(width, ResUtil.dp2px(420));
+        params.height = Math.max(height, ResUtil.dp2px(360));
+        params.gravity = Gravity.CENTER;
+        window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        window.getDecorView().setPadding(0, 0, 0, 0);
+        window.setAttributes(params);
+        window.setLayout(params.width, params.height);
     }
 
     private void initView() {

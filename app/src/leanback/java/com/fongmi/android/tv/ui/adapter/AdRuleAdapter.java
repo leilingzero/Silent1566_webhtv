@@ -25,6 +25,7 @@ public class AdRuleAdapter extends RecyclerView.Adapter<AdRuleAdapter.ViewHolder
         private UserAdRule userRule;
         private Rule defaultRule;
         private String defaultRuleId;
+        private String source;
 
         public static RuleItem fromUser(UserAdRule rule) {
             RuleItem item = new RuleItem(RuleType.USER_RULE);
@@ -32,10 +33,11 @@ public class AdRuleAdapter extends RecyclerView.Adapter<AdRuleAdapter.ViewHolder
             return item;
         }
 
-        public static RuleItem fromDefault(Rule rule) {
+        public static RuleItem fromDefault(Rule rule, String source) {
             RuleItem item = new RuleItem(RuleType.DEFAULT_RULE);
             item.defaultRule = rule;
             item.defaultRuleId = RuleIdUtil.computeRuleId(rule);
+            item.source = source;
             return item;
         }
 
@@ -55,7 +57,7 @@ public class AdRuleAdapter extends RecyclerView.Adapter<AdRuleAdapter.ViewHolder
         public String getSummary() {
             if (type == RuleType.USER_RULE) return userRule.getSummary();
             // 默认规则摘要: 域名 N · URL规则 N · 白名单 N
-            return "域名 " + defaultRule.getHosts().size() + " · URL规则 " + defaultRule.getRegex().size() + " · 白名单 " + defaultRule.getExclude().size();
+            return source + " · 域名 " + defaultRule.getHosts().size() + " · URL规则 " + defaultRule.getRegex().size() + " · 白名单 " + defaultRule.getExclude().size();
         }
 
         public boolean isEnabled() {
