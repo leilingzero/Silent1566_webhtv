@@ -159,7 +159,7 @@ public class PlaybackPerformanceSetting {
             case PROFILE_COMPATIBLE -> "兼容";
             case PROFILE_LIGHTWEIGHT -> "轻量";
             case PROFILE_CUSTOM -> "自定义";
-            case PROFILE_ORIGINAL -> "原版默认";
+            case PROFILE_ORIGINAL -> "原版";
             default -> "推荐";
         };
     }

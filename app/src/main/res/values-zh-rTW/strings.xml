@@ -888,7 +888,7 @@
     <string name="player_performance_recommended">推薦</string>
     <string name="player_performance_compatible">相容</string>
     <string name="player_performance_lightweight">輕量</string>
-    <string name="player_performance_original">原版預設</string>
+    <string name="player_performance_original">原版</string>
     <string name="player_performance_help">說明</string>
     <string name="player_performance_help_title">播放效能參數說明</string>
     <string name="player_performance_help_close">關閉</string>

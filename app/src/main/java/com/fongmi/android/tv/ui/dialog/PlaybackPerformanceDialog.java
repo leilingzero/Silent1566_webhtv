@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +18,7 @@ import android.widget.ScrollView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.widget.TextViewCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -32,11 +34,15 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textview.MaterialTextView;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class PlaybackPerformanceDialog extends DialogFragment {
 
     private Runnable callback;
     private Dialog helpDialog;
     private LinearLayout list;
+    private final List<MaterialButton> profileButtons = new ArrayList<>();
 
     public static void show(Fragment fragment, Runnable callback) {
         PlaybackPerformanceDialog dialog = new PlaybackPerformanceDialog();
@@ -106,10 +112,10 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
         LinearLayout actions = new LinearLayout(requireContext());
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER);
-        actions.addView(actionButton(R.string.player_performance_recommended, view -> apply(PlaybackPerformanceSetting.PROFILE_RECOMMENDED)), actionParams(true));
-        actions.addView(actionButton(R.string.player_performance_compatible, view -> apply(PlaybackPerformanceSetting.PROFILE_COMPATIBLE)), actionParams(false));
-        actions.addView(actionButton(R.string.player_performance_lightweight, view -> apply(PlaybackPerformanceSetting.PROFILE_LIGHTWEIGHT)), actionParams(false));
-        actions.addView(actionButton(R.string.player_performance_original, view -> apply(PlaybackPerformanceSetting.PROFILE_ORIGINAL)), actionParams(false));
+        actions.addView(profileButton(R.string.player_performance_recommended, PlaybackPerformanceSetting.PROFILE_RECOMMENDED), actionParams(true));
+        actions.addView(profileButton(R.string.player_performance_compatible, PlaybackPerformanceSetting.PROFILE_COMPATIBLE), actionParams(false));
+        actions.addView(profileButton(R.string.player_performance_lightweight, PlaybackPerformanceSetting.PROFILE_LIGHTWEIGHT), actionParams(false));
+        actions.addView(profileButton(R.string.player_performance_original, PlaybackPerformanceSetting.PROFILE_ORIGINAL), actionParams(false));
         LinearLayout.LayoutParams actionLayout = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40));
         actionLayout.topMargin = dp(14);
         root.addView(actions, actionLayout);
@@ -124,6 +130,7 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
         scrollParams.topMargin = dp(16);
         root.addView(scroll, scrollParams);
         refreshRows();
+        refreshProfileButtons();
         return root;
     }
 
@@ -168,10 +175,10 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
         scrollParams.topMargin = dp(10);
         root.addView(scroll, scrollParams);
 
-        addHelpIntro(content, "这些选项主要影响 EXO / Media3 播放，部分缓存选项也会作用于 MPV。通常先使用“推荐”；遇到黑屏、无声、卡顿、发热、内存不足或老设备兼容问题时，再参考下方逐项调整。多数选项需重新进入播放后生效。\n\n“推荐”偏向画质、流畅度和预载能力；“兼容”减少实验特性，适合解码器不稳定的设备；“轻量”面向低内存电视，降低内存缓冲、磁盘缓存、预载和后台连接占用；“原版默认”恢复播放性能设置引入前的参数，用于复现旧版行为。“重置”会覆盖自定义值：当前为兼容、轻量或原版默认预设时恢复对应默认，其余情况恢复推荐默认。");
+        addHelpIntro(content, "这些选项主要影响 EXO / Media3 播放，部分缓存选项也会作用于 MPV。通常先使用“推荐”；遇到黑屏、无声、卡顿、发热、内存不足或老设备兼容问题时，再参考下方逐项调整。多数选项需重新进入播放后生效。\n\n“推荐”偏向画质、流畅度和预载能力；“兼容”减少实验特性，适合解码器不稳定的设备；“轻量”面向低内存电视，降低内存缓冲、磁盘缓存、预载和后台连接占用；“原版”恢复播放性能设置引入前的参数，用于复现旧版行为。“重置”会覆盖自定义值：当前为兼容、轻量或原版预设时恢复对应默认，其余情况恢复推荐默认。");
 
         addHelpSection(content, "基础性能");
-        addHelpItem(content, "性能配置", "显示当前预设。推荐：功能更完整、画质和抗卡顿能力更强，但占用更多内存、网络与存储；兼容：关闭部分实验调度，优先解决旧设备或异常解码器的兼容问题；轻量：只加载选中轨道，使用 64MB 缓冲容量、关闭回退缓冲和预载，并把播放缓存降到 128MB，适合低内存电视；原版默认：还原播放性能设置引入前的旧版参数；自定义：表示已有参数被单独修改。");
+        addHelpItem(content, "性能配置", "显示当前预设。推荐：功能更完整、画质和抗卡顿能力更强，但占用更多内存、网络与存储；兼容：关闭部分实验调度，优先解决旧设备或异常解码器的兼容问题；轻量：只加载选中轨道，使用 64MB 缓冲容量、关闭回退缓冲和预载，并把播放缓存降到 128MB，适合低内存电视；原版：还原播放性能设置引入前的旧版参数；自定义：表示已有参数被单独修改。");
         addHelpItem(content, "渲染方式", "SurfaceView 直接交给系统合成，通常更省电、更适合高分辨率和隧道模式，但界面叠加、截图及部分机型切换画面可能受限。TextureView 更灵活、兼容动画和缩放，但会增加 GPU 开销，并会关闭隧道模式。");
         addHelpItem(content, "视频轨道限制", "开启后按屏幕和硬件解码能力限制分辨率、帧率与码率，可避免选到设备带不动的轨道；代价是可能不会播放源中最高画质。关闭后优先最高支持码率，画质上限更高，但更容易卡顿、掉帧或解码失败。");
         addHelpItem(content, "自适应降级", "开启后遇到重缓冲、连续掉帧或带宽不足时，会在本次播放中逐级降低视频规格，稳定性更好；代价是画质可能下降，且不会自动升回。关闭可保持选定画质，但网络或性能不足时更容易持续卡顿。");
@@ -235,6 +242,7 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
     public void onDestroyView() {
         if (helpDialog != null) helpDialog.dismiss();
         helpDialog = null;
+        profileButtons.clear();
         super.onDestroyView();
     }
 
@@ -283,8 +291,12 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
         button.setAllCaps(false);
         button.setText(text);
         button.setSingleLine(true);
+        button.setMaxLines(1);
         button.setGravity(Gravity.CENTER);
         button.setTextSize(14);
+        button.setIncludeFontPadding(false);
+        button.setPadding(dp(6), 0, dp(6), 0);
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(button, 10, 14, 1, TypedValue.COMPLEX_UNIT_SP);
         button.setMinWidth(0);
         button.setMinimumWidth(0);
         button.setMinHeight(dp(38));
@@ -297,16 +309,31 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
         button.setBackgroundTintList(ColorStateList.valueOf(Color.WHITE));
         button.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#8AB4F8")));
         button.setStrokeWidth(dp(1));
-        button.setOnFocusChangeListener((view, hasFocus) -> styleAction(button, hasFocus));
+        button.setOnFocusChangeListener((view, hasFocus) -> styleAction(button, hasFocus, button.isSelected()));
         button.setOnClickListener(listener);
         return button;
     }
 
-    private void styleAction(MaterialButton button, boolean focused) {
+    private MaterialButton profileButton(int text, int profile) {
+        MaterialButton button = actionButton(text, view -> apply(profile));
+        button.setTag(profile);
+        profileButtons.add(button);
+        return button;
+    }
+
+    private void refreshProfileButtons() {
+        int profile = PlaybackPerformanceSetting.getProfile();
+        for (MaterialButton button : profileButtons) {
+            button.setSelected((int) button.getTag() == profile);
+            styleAction(button, button.hasFocus(), button.isSelected());
+        }
+    }
+
+    private void styleAction(MaterialButton button, boolean focused, boolean selected) {
         button.setTextColor(ColorStateList.valueOf(Color.parseColor(focused ? "#FFFFFF" : "#174EA6")));
-        button.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(focused ? "#1A73E8" : "#FFFFFF")));
-        button.setStrokeColor(ColorStateList.valueOf(Color.parseColor(focused ? "#1A73E8" : "#8AB4F8")));
-        button.setStrokeWidth(dp(1));
+        button.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(focused ? "#1A73E8" : selected ? "#D2E3FC" : "#FFFFFF")));
+        button.setStrokeColor(ColorStateList.valueOf(Color.parseColor(focused || selected ? "#1A73E8" : "#8AB4F8")));
+        button.setStrokeWidth(dp(selected && !focused ? 2 : 1));
     }
 
     private LinearLayout.LayoutParams actionParams(boolean first) {
@@ -332,6 +359,7 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
 
     private void refresh() {
         refreshRows();
+        refreshProfileButtons();
         if (callback != null) callback.run();
     }
 
