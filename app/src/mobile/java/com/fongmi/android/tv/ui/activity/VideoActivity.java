@@ -3540,6 +3540,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         }
         long position = Math.max(mHistory.getOpening(), mHistory.getPosition());
         if (position <= 0) return;
+        mIntroSkipPlayback.setResumePosition(position);
         if (player().isIjk()) pendingResumeSeekMs = position;
         else player().seekTo(position);
     }

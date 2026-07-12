@@ -4899,7 +4899,9 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
             syncHistory();
         }
         long position = Math.max(mHistory.getOpening(), mHistory.getPosition());
-        if (position > 0) player().seekTo(position);
+        if (position <= 0) return;
+        mIntroSkipPlayback.setResumePosition(position);
+        player().seekTo(position);
     }
 
     private void setSpeed() {

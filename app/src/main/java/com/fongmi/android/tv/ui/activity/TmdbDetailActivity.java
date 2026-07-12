@@ -8160,6 +8160,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
 
     private void prepareInlineStartPosition() {
         long position = getInlineStartPosition();
+        if (position > 0) introSkipPlayback.setResumePosition(position);
         if (position > 0 && service() != null && player() != null && !player().isEmpty()) player().seekTo(position);
     }
 
@@ -8167,6 +8168,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         if (inlineStartPositionApplied || history == null || controller() == null) return;
         long position = getInlineStartPosition();
         inlineStartPositionApplied = true;
+        if (position > 0) introSkipPlayback.setResumePosition(position);
         if (position > 0) controller().seekTo(position);
     }
 
