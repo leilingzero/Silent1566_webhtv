@@ -2119,6 +2119,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void checkPlay() {
         setR1Callback();
+        if (player() == null) return;
         if (player().isPlaying()) onPaused();
         else if (player().isEmpty()) onRefresh();
         else onPlay();
@@ -2566,6 +2567,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void enterFullscreen() {
         if (isFullscreen()) return;
+        if (player() == null) return;
         logVideoFrame("enterFullscreen before");
         setFullscreen(true);
         if (isLand() && !player().isPortrait()) setTransition();

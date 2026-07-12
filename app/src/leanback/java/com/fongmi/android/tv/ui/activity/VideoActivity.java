@@ -5412,6 +5412,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     @Override
     public void onKeyCenter() {
+        if (player() == null) return;
         if (player().isPlaying()) onPaused();
         else if (player().isEmpty()) onRefresh();
         else onPlay();
