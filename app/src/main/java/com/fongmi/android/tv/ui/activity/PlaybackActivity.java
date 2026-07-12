@@ -15,6 +15,7 @@ import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.common.VideoSize;
@@ -48,6 +49,7 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
     private boolean audioOnly;
     private boolean redirect;
     private boolean playbackExiting;
+    private String preparedPlaybackKey;
     private boolean bound;
     private boolean stop;
     private boolean lock;
@@ -63,6 +65,22 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
 
     protected PlayerManager player() {
         return mService == null ? null : mService.player();
+    }
+
+    protected boolean isServiceReady() {
+        return mService != null && mService.player() != null && !mService.player().isReleased();
+    }
+
+    protected View.OnClickListener guarded(Runnable action) {
+        return v -> {
+            if (isServiceReady()) action.run();
+        };
+    }
+
+    protected View.OnClickListener guardedView(java.util.function.Consumer<View> action) {
+        return v -> {
+            if (isServiceReady()) action.accept(v);
+        };
     }
 
     protected boolean isRedirect() {
@@ -244,9 +262,11 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
         } else if (result.getRealUrl().isEmpty()) {
             onError(ResUtil.getString(R.string.error_play_url));
         } else if (result.needParse() || useParse) {
+            preparedPlaybackKey = null;
             attachSurface();
             player().parse(key, result, useParse, metadata, PlayerSetting.isAutoPlay());
         } else {
+            preparedPlaybackKey = null;
             attachSurface();
             player().start(PlaySpec.from(result, key, metadata), timeout, PlayerSetting.isAutoPlay());
         }
@@ -300,6 +320,20 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
     protected void onControllerConnected() {
     }
 
+    protected void onControllerReadyReconciled() {
+    }
+
+    private void reconcileControllerReadyState() {
+        PlayerManager manager = player();
+        if (mController == null || manager == null) return;
+        MediaItem managerItem = manager.getCurrentMediaItem();
+        MediaItem controllerItem = mController.getCurrentMediaItem();
+        String managerMediaId = managerItem == null ? null : managerItem.mediaId;
+        String controllerMediaId = controllerItem == null ? null : controllerItem.mediaId;
+        if (!PlaybackStateReconciliation.shouldReplayReady(getPlaybackKey(), preparedPlaybackKey, manager.getKey(), managerMediaId, controllerMediaId, manager.getPlaybackState(), mController.getPlaybackState())) return;
+        onControllerReadyReconciled();
+    }
+
     private void handleControllerConnected() {
         long start = System.currentTimeMillis();
         try {
@@ -307,6 +341,7 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
             getSeekView().setPlayer(mController);
             getSeekView().setSeekListener(this::onSeekStarted);
             mController.addListener(this);
+            reconcileControllerReadyState();
         } catch (Exception ignored) {
         }
         if (SpiderDebug.isEnabled()) SpiderDebug.log("playback-flow", "controller connected cost=%dms key=%s", System.currentTimeMillis() - start, getPlaybackKey());
@@ -528,7 +563,12 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
 
         @Override
         public void onPrepare() {
-            if (isOwner()) PlaybackActivity.this.onPrepare();
+            if (isOwner()) {
+                MediaItem item = player().getCurrentMediaItem();
+                preparedPlaybackKey = item == null ? null : item.mediaId;
+                PlaybackActivity.this.onPrepare();
+                reconcileControllerReadyState();
+            }
         }
 
         @Override
@@ -623,6 +663,7 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
     public void onServiceDisconnected(ComponentName name) {
         if (SpiderDebug.isEnabled()) SpiderDebug.log("playback-lifecycle", "service disconnected name=%s %s", name, lifecycleState());
         mService = null;
+        preparedPlaybackKey = null;
     }
 
     @Override

@@ -835,9 +835,9 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         });
         mBinding.tmdbRematch.setOnClickListener(view -> showManualTmdbMatchDialog());
         mBinding.content.setOnClickListener(view -> onContent());
-        mBinding.control.action.text.setOnClickListener(this::onTrack);
-        mBinding.control.action.audio.setOnClickListener(this::onTrack);
-        mBinding.control.action.video.setOnClickListener(this::onTrack);
+        mBinding.control.action.text.setOnClickListener(guardedView(this::onTrack));
+        mBinding.control.action.audio.setOnClickListener(guardedView(this::onTrack));
+        mBinding.control.action.video.setOnClickListener(guardedView(this::onTrack));
         mBinding.control.action.speed.setUpListener(this::onSpeedAdd);
         mBinding.control.action.speed.setDownListener(this::onSpeedSub);
         mBinding.control.action.ending.setUpListener(this::onEndingAdd);
@@ -855,30 +855,30 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.episodeReverse.setOnKeyListener((view, keyCode, event) -> onEpisodeHeaderToolKey(view, keyCode, event));
         mBinding.episodeViewMode.setOnKeyListener((view, keyCode, event) -> onEpisodeHeaderToolKey(view, keyCode, event));
         mBinding.episodeFileName.setOnKeyListener((view, keyCode, event) -> onEpisodeHeaderToolKey(view, keyCode, event));
-        mBinding.control.action.scale.setOnClickListener(view -> onScale());
-        mBinding.control.action.actionQuality.setOnClickListener(view -> onQuality());
-        mBinding.control.action.lut.setOnClickListener(view -> onLut());
-        mBinding.control.action.speed.setOnClickListener(view -> onSpeed());
-        mBinding.control.action.reset.setOnClickListener(view -> onReset());
-        mBinding.control.action.title.setOnClickListener(view -> onTitle());
-        mBinding.control.action.player.setOnClickListener(view -> onPlayerKernel());
+        mBinding.control.action.scale.setOnClickListener(guarded(this::onScale));
+        mBinding.control.action.actionQuality.setOnClickListener(guarded(this::onQuality));
+        mBinding.control.action.lut.setOnClickListener(guarded(this::onLut));
+        mBinding.control.action.speed.setOnClickListener(guarded(this::onSpeed));
+        mBinding.control.action.reset.setOnClickListener(guarded(this::onReset));
+        mBinding.control.action.title.setOnClickListener(guarded(this::onTitle));
+        mBinding.control.action.player.setOnClickListener(guarded(this::onPlayerKernel));
         mBinding.control.action.player.setOnLongClickListener(view -> onPlayerKernelLong());
-        mBinding.control.action.decode.setOnClickListener(view -> onDecode());
-        mBinding.control.action.playParams.setOnClickListener(view -> onPlayParams());
-        mBinding.control.action.codecCapability.setOnClickListener(view -> onCodecCapability());
-        mBinding.control.action.ending.setOnClickListener(view -> onEnding());
-        mBinding.control.action.repeat.setOnClickListener(view -> onRepeat());
+        mBinding.control.action.decode.setOnClickListener(guarded(this::onDecode));
+        mBinding.control.action.playParams.setOnClickListener(guarded(this::onPlayParams));
+        mBinding.control.action.codecCapability.setOnClickListener(guarded(this::onCodecCapability));
+        mBinding.control.action.ending.setOnClickListener(guarded(this::onEnding));
+        mBinding.control.action.repeat.setOnClickListener(guarded(this::onRepeat));
         mBinding.control.action.search.setOnClickListener(view -> onSearch());
         mBinding.control.action.search.setOnLongClickListener(view -> {
             onGlobalSearch();
             return true;
         });
         mBinding.control.action.change2.setOnClickListener(view -> onChange());
-        mBinding.control.action.fullscreen.setOnClickListener(view -> onFullscreen());
-        mBinding.control.action.danmaku.setOnClickListener(view -> onDanmaku());
+        mBinding.control.action.fullscreen.setOnClickListener(guarded(this::onFullscreen));
+        mBinding.control.action.danmaku.setOnClickListener(guarded(this::onDanmaku));
         mBinding.control.action.danmaku.setOnLongClickListener(view -> onDanmakuToggle());
         mBinding.control.action.adFeedback.setOnClickListener(view -> onAdFeedback());
-        mBinding.control.action.opening.setOnClickListener(view -> onOpening());
+        mBinding.control.action.opening.setOnClickListener(guarded(this::onOpening));
         mBinding.shortDisplay.setOnClickListener(view -> onShortDisplay());
         mBinding.control.action.speed.setOnLongClickListener(view -> onSpeedLong());
         mBinding.control.action.reset.setOnLongClickListener(view -> onResetToggle());
@@ -1884,6 +1884,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                 .source(MediaTitleLearningExample.SOURCE_DANMAKU_AUTO)
                 .allowAi(true)
                 .build(), danmaku -> {
+            if (player() == null) return;
             if (DanmakuSetting.isSpiderFirst() && !siteDanmakus.isEmpty()) player().addDanmaku(danmaku);
             else player().setDanmaku(danmaku);
         });
@@ -4898,7 +4899,9 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
             syncHistory();
         }
         long position = Math.max(mHistory.getOpening(), mHistory.getPosition());
-        if (position > 0) player().seekTo(position);
+        if (position <= 0) return;
+        mIntroSkipPlayback.setResumePosition(position);
+        player().seekTo(position);
     }
 
     private void setSpeed() {
@@ -5411,6 +5414,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     @Override
     public void onKeyCenter() {
+        if (player() == null) return;
         if (player().isPlaying()) onPaused();
         else if (player().isEmpty()) onRefresh();
         else onPlay();

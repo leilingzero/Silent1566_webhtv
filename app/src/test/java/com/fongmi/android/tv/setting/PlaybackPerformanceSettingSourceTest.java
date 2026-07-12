@@ -15,7 +15,7 @@ public class PlaybackPerformanceSettingSourceTest {
         String source = read(sourcePath("main", "java", "com", "fongmi", "android", "tv", "setting", "PlaybackPerformanceSetting.java"));
 
         assertTrue(source.contains("PROFILE_CUSTOM = 2"));
-        assertTrue(source.contains("PROFILE_ORIGINAL = 3"));
+        assertTrue(source.contains("PROFILE_ORIGINAL = 4"));
         assertTrue(source.contains("profile == PROFILE_ORIGINAL"));
     }
 
@@ -61,7 +61,47 @@ public class PlaybackPerformanceSettingSourceTest {
 
         assertTrue(source.contains("R.string.player_performance_original"));
         assertTrue(source.contains("PlaybackPerformanceSetting.applyOriginal()"));
-        assertTrue(source.contains("“原版默认”恢复播放性能设置引入前的参数"));
+
+        String catalog = read(sourcePath("main", "java", "com", "fongmi", "android", "tv", "setting", "PlaybackPerformanceCatalog.java"));
+        assertTrue(catalog.contains("option(PROFILE, BASIC, \"性能配置\", profileDescription(kernel))"));
+        assertTrue(catalog.contains("独立预设"));
+    }
+
+    @Test
+    public void originalProfileUsesShortChineseLabel() throws Exception {
+        String setting = read(sourcePath("main", "java", "com", "fongmi", "android", "tv", "setting", "PlaybackPerformanceSetting.java"));
+        String strings = read(sourcePath("main", "res", "values-zh-rCN", "strings.xml"));
+
+        assertTrue(setting.contains("case PROFILE_ORIGINAL -> \"原版\";"));
+        assertTrue(strings.contains("<string name=\"player_performance_original\">原版</string>"));
+    }
+
+    @Test
+    public void performanceDialogHighlightsSelectedProfile() throws Exception {
+        String source = read(sourcePath("main", "java", "com", "fongmi", "android", "tv", "ui", "dialog", "PlaybackPerformanceDialog.java"));
+        String createView = methodBody(source, "private View createView", "private void showHelpDialog");
+        String refresh = methodBody(source, "private void refresh()", "private void refreshRows()");
+        String style = methodBody(source, "private void styleAction", "private LinearLayout.LayoutParams actionParams");
+
+        assertContainsAll(source,
+                "private MaterialButton profileButton(int text, int profile)",
+                "button.setSelected((int) button.getTag() == profile)",
+                "styleAction(button, button.hasFocus(), button.isSelected())");
+        assertTrue(createView.contains("refreshProfileButtons();"));
+        assertTrue(refresh.contains("refreshProfileButtons();"));
+        assertTrue(style.contains("selected ? \"#D2E3FC\" : \"#FFFFFF\""));
+    }
+
+    @Test
+    public void performanceDialogButtonsKeepLabelsVisible() throws Exception {
+        String source = read(sourcePath("main", "java", "com", "fongmi", "android", "tv", "ui", "dialog", "PlaybackPerformanceDialog.java"));
+        String actionButton = methodBody(source, "private MaterialButton actionButton", "private MaterialButton profileButton");
+
+        assertContainsAll(actionButton,
+                "button.setMaxLines(1)",
+                "button.setIncludeFontPadding(false)",
+                "button.setPadding(dp(6), 0, dp(6), 0)",
+                "TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(button, 10, 14, 1, TypedValue.COMPLEX_UNIT_SP)");
     }
 
     private static void assertContainsAll(String source, String... values) {

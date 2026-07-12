@@ -40,6 +40,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.C;
@@ -144,6 +145,7 @@ import com.fongmi.android.tv.ui.dialog.VideoContentDialog;
 import com.fongmi.android.tv.ui.helper.DetailThemeVisibility;
 import com.fongmi.android.tv.ui.helper.EpisodeDisplayPolicy;
 import com.fongmi.android.tv.ui.helper.EpisodeRangePolicy;
+import com.fongmi.android.tv.ui.helper.PipExitDecision;
 import com.fongmi.android.tv.ui.helper.PlayerControlFocusHelper;
 import com.fongmi.android.tv.ui.helper.TmdbNavigation;
 import com.fongmi.android.tv.ui.player.VodPlayerChrome;
@@ -250,7 +252,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private boolean mNativePersonalTmdbLoading;
     private boolean mNativePersonalDoubanLoading;
     private boolean mEpisodeGridMode = Setting.getTmdbEpisodeGridMode();
-    private boolean playerKernelSwitchRefreshing;
+    private int playerKernelSwitchRequestId;
     private boolean decodeSwitchRefreshing;
     private int mEpisodeSpanCount;
     private int mEpisodeBottomInset;
@@ -859,7 +861,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.more.setOnClickListener(view -> onMore());
         mBinding.shortDisplay.setOnClickListener(view -> onShortDisplay());
         mBinding.search.setOnClickListener(view -> onSearch());
-        mBinding.castAction.setOnClickListener(view -> onCast());
+        mBinding.castAction.setOnClickListener(guarded(this::onCast));
         mBinding.settingAction.setOnClickListener(view -> onSetting());
         mBinding.actor.setOnClickListener(view -> onActor());
         mBinding.content.setOnClickListener(view -> onContent());
@@ -870,39 +872,39 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.name.setOnLongClickListener(view -> onChange());
         mBinding.content.setOnLongClickListener(view -> onCopy());
         mBinding.control.back.setOnClickListener(view -> onBack());
-        mBinding.control.cast.setOnClickListener(view -> onCast());
-        mBinding.control.info.setOnClickListener(view -> onInfo());
+        mBinding.control.cast.setOnClickListener(guarded(this::onCast));
+        mBinding.control.info.setOnClickListener(guarded(this::onInfo));
         mBinding.control.keep.setOnClickListener(view -> onKeep());
         mBinding.control.display.setOnClickListener(view -> onDisplay());
         mBinding.control.osdDiagnostics.setOnClickListener(view -> onOsdDiagnostics());
-        mBinding.control.play.setOnClickListener(view -> checkPlay());
+        mBinding.control.play.setOnClickListener(guarded(this::checkPlay));
         mBinding.control.next.setOnClickListener(view -> checkNext());
         mBinding.control.prev.setOnClickListener(view -> checkPrev());
         mBinding.control.setting.setOnClickListener(view -> onSetting());
         mBinding.control.title.setOnLongClickListener(view -> onChange());
         mBinding.control.right.lock.setOnClickListener(view -> onLock());
         mBinding.control.right.rotate.setOnClickListener(view -> onRotate());
-        mBinding.control.right.pip.setOnClickListener(view -> onPiP());
-        mBinding.control.fullscreen.setOnClickListener(view -> onFullscreen());
+        mBinding.control.right.pip.setOnClickListener(guarded(this::onPiP));
+        mBinding.control.fullscreen.setOnClickListener(guarded(this::onFullscreen));
         mBinding.control.danmaku.setOnClickListener(view -> onDanmakuShow());
-        mBinding.control.action.text.setOnClickListener(this::onTrack);
-        mBinding.control.action.audio.setOnClickListener(this::onTrack);
-        mBinding.control.action.video.setOnClickListener(this::onTrack);
-        mBinding.control.action.scale.setOnClickListener(view -> onScale());
-        mBinding.control.action.actionQuality.setOnClickListener(view -> onQuality());
-        mBinding.control.action.lut.setOnClickListener(view -> onLut());
-        mBinding.control.action.speed.setOnClickListener(view -> onSpeed());
-        mBinding.control.action.reset.setOnClickListener(view -> onReset());
-        mBinding.control.action.title.setOnClickListener(view -> onTitle());
-        mBinding.control.action.player.setOnClickListener(view -> onPlayerKernel());
+        mBinding.control.action.text.setOnClickListener(guardedView(this::onTrack));
+        mBinding.control.action.audio.setOnClickListener(guardedView(this::onTrack));
+        mBinding.control.action.video.setOnClickListener(guardedView(this::onTrack));
+        mBinding.control.action.scale.setOnClickListener(guarded(this::onScale));
+        mBinding.control.action.actionQuality.setOnClickListener(guarded(this::onQuality));
+        mBinding.control.action.lut.setOnClickListener(guarded(this::onLut));
+        mBinding.control.action.speed.setOnClickListener(guarded(this::onSpeed));
+        mBinding.control.action.reset.setOnClickListener(guarded(this::onReset));
+        mBinding.control.action.title.setOnClickListener(guarded(this::onTitle));
+        mBinding.control.action.player.setOnClickListener(guarded(this::onPlayerKernel));
         mBinding.control.action.player.setOnLongClickListener(view -> onPlayerKernelLong());
         mBinding.control.action.prev.setOnClickListener(view -> checkPrev());
         mBinding.control.action.next.setOnClickListener(view -> checkNext());
-        mBinding.control.action.decode.setOnClickListener(view -> onDecode());
-        mBinding.control.action.ending.setOnClickListener(view -> onEnding());
-        mBinding.control.action.repeat.setOnClickListener(view -> onRepeat());
-        mBinding.control.action.opening.setOnClickListener(view -> onOpening());
-        mBinding.control.action.danmaku.setOnClickListener(view -> onDanmaku());
+        mBinding.control.action.decode.setOnClickListener(guarded(this::onDecode));
+        mBinding.control.action.ending.setOnClickListener(guarded(this::onEnding));
+        mBinding.control.action.repeat.setOnClickListener(guarded(this::onRepeat));
+        mBinding.control.action.opening.setOnClickListener(guarded(this::onOpening));
+        mBinding.control.action.danmaku.setOnClickListener(guarded(this::onDanmaku));
         mBinding.control.action.adFeedback.setOnClickListener(view -> onAdFeedback());
         mBinding.control.action.episodes.setOnClickListener(view -> onEpisodes());
         mBinding.control.action.text.setOnLongClickListener(view -> onTextLong());
@@ -1589,6 +1591,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
                 .source(MediaTitleLearningExample.SOURCE_DANMAKU_AUTO)
                 .allowAi(true)
                 .build(), danmaku -> {
+            if (player() == null) return;
             if (DanmakuSetting.isSpiderFirst() && !siteDanmakus.isEmpty()) player().addDanmaku(danmaku);
             else player().setDanmaku(danmaku);
             refreshDanmakuControls();
@@ -2118,6 +2121,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void checkPlay() {
         setR1Callback();
+        if (player() == null) return;
         if (player().isPlaying()) onPaused();
         else if (player().isEmpty()) onRefresh();
         else onPlay();
@@ -2473,10 +2477,13 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         items[kernel.length] = "外调";
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setItems(items, (dialog, which) -> {
             if (which < kernel.length) {
-                player().switchPlayerManually(which);
-                setPlayer();
-                setDecode();
+                if (!refreshAndSwitchPlayerKernel(which)) {
+                    player().switchPlayerManually(which);
+                    setPlayer();
+                    setDecode();
+                }
             } else {
+                playerKernelSwitchRequestId++;
                 PlayerHelper.choose(this, player().getUrl(), player().getHeaders(), player().isVod(), player().getPosition(), mBinding.control.title.getText());
                 setRedirect(true);
             }
@@ -2484,7 +2491,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void onPlayerKernel() {
-        if (refreshAndSwitchPlayerKernel()) return;
         mClock.setCallback(null);
         onChoose();
         setR1Callback();
@@ -2495,12 +2501,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         return true;
     }
 
-    private boolean refreshAndSwitchPlayerKernel() {
-        if (playerKernelSwitchRefreshing) return true;
+    private boolean refreshAndSwitchPlayerKernel(int type) {
+        int requestId = ++playerKernelSwitchRequestId;
         Flag currentFlag = getFlag();
         Episode currentEpisode = getEpisode();
         if (currentFlag == null || currentEpisode == null || TextUtils.isEmpty(currentFlag.getFlag()) || TextUtils.isEmpty(currentEpisode.getUrl())) return false;
-        int nextType = PlayerSetting.nextPlayer(player().getPlayerType());
         long position = player().getPosition();
         float speed = player().getSpeed();
         boolean repeat = player().isRepeatOne();
@@ -2508,17 +2513,16 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         String flag = currentFlag.getFlag();
         String episode = currentEpisode.getUrl();
         MediaMetadata metadata = buildMetadata();
-        playerKernelSwitchRefreshing = true;
         mClock.setCallback(null);
-        SpiderDebug.log("video-flow", "switch player refresh start type=%d key=%s flag=%s episode=%s", nextType, key, flag, episode);
+        SpiderDebug.log("video-flow", "switch player refresh start type=%d key=%s flag=%s episode=%s", type, key, flag, episode);
         Task.execute(() -> {
             try {
                 Result result = SiteApi.playerContent(key, flag, episode);
-                App.post(() -> switchPlayerKernelWithResult(nextType, result, position, speed, repeat, metadata));
+                App.post(() -> switchPlayerKernelWithResult(requestId, type, result, position, speed, repeat, metadata));
             } catch (Throwable e) {
                 App.post(() -> {
-                    playerKernelSwitchRefreshing = false;
-                    player().togglePlayer();
+                    if (requestId != playerKernelSwitchRequestId) return;
+                    player().switchPlayerManually(type);
                     setPlayerKernel();
                     setDecode();
                     setR1Callback();
@@ -2529,10 +2533,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         return true;
     }
 
-    private void switchPlayerKernelWithResult(int type, Result result, long position, float speed, boolean repeat, MediaMetadata metadata) {
-        playerKernelSwitchRefreshing = false;
+    private void switchPlayerKernelWithResult(int requestId, int type, Result result, long position, float speed, boolean repeat, MediaMetadata metadata) {
+        if (requestId != playerKernelSwitchRequestId) return;
         if (result == null || result.hasMsg() || result.getRealUrl().isEmpty()) {
-            player().togglePlayer();
+            player().switchPlayerManually(type);
         } else {
             player().switchPlayer(type, result, getHistoryKey(), metadata, isUseParse(), position, speed, repeat);
         }
@@ -2565,6 +2569,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void enterFullscreen() {
         if (isFullscreen()) return;
+        if (player() == null) return;
         logVideoFrame("enterFullscreen before");
         setFullscreen(true);
         if (isLand() && !player().isPortrait()) setTransition();
@@ -3282,6 +3287,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     @Override
+    protected void onControllerReadyReconciled() {
+        showPlaybackContent();
+    }
+
+    @Override
     protected void onPrepare() {
         android.util.Log.d("VideoActivity", "onPrepare: setting Clock callback");
         setPlayerKernel();
@@ -3532,6 +3542,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         }
         long position = Math.max(mHistory.getOpening(), mHistory.getPosition());
         if (position <= 0) return;
+        mIntroSkipPlayback.setResumePosition(position);
         if (player().isIjk()) pendingResumeSeekMs = position;
         else player().seekTo(position);
     }
@@ -4823,11 +4834,9 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         } else {
             showDanmaku();
             restoreContextWall();
-            // PiP 窗口点 × 关闭时，主动停止播放，避免声音继续（与正常退出保持一致）
-            if (isStop()) {
-                saveHistory(true);
-                finishPlayback();
-            }
+            // PiP 窗口点 × 关闭时，主动停止播放，避免声音继续（与正常退出保持一致）。
+            // 不能依赖 isStop() 时序，改为等生命周期 settle 后按最终状态判定。
+            App.post(this::finishIfPipClosed, 0);
         }
     }
 
@@ -4835,6 +4844,14 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     protected void onResume() {
         super.onResume();
         restoreContextWall();
+    }
+
+    private void finishIfPipClosed() {
+        boolean atLeastStarted = getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED);
+        if (PipExitDecision.shouldFinishAfterPipExit(atLeastStarted, isFinishing(), isDestroyed())) {
+            saveHistory(true);
+            finishPlayback();
+        }
     }
 
     @Override

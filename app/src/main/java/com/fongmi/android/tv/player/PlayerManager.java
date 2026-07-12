@@ -829,6 +829,7 @@ public class PlayerManager implements ParseCallback {
     public void switchPlayer(int type, Result result, String key, MediaMetadata metadata, boolean useParse, long position, float speed, boolean repeat) {
         if (engine == null || player == null || result == null || result.hasMsg() || result.getRealUrl().isEmpty()) return;
         type = PlayerSetting.sanitizePlayer(type);
+        manualPlayerSwitchPending = true;
         boolean wasPlayWhenReady = player.getPlayWhenReady();
         int decode = engine.getDecode();
         prepareSeq++;

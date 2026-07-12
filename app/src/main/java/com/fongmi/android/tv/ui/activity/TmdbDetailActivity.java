@@ -962,38 +962,38 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         inflateMobileInlineControl();
         binding.playerControls.setVisibility(View.GONE);
         detailControlView(R.id.back, View.class).setOnClickListener(view -> onInlineBack());
-        detailControlView(R.id.play, View.class).setOnClickListener(view -> toggleInlinePlayback());
+        detailControlView(R.id.play, View.class).setOnClickListener(guarded(this::toggleInlinePlayback));
         detailControlView(R.id.prev, View.class).setOnClickListener(view -> checkInlinePrev());
         detailControlView(R.id.next, View.class).setOnClickListener(view -> checkInlineNext());
-        detailControlView(R.id.fullscreen, View.class).setOnClickListener(view -> toggleInlineFullscreen());
-        detailControlView(R.id.cast, View.class).setOnClickListener(view -> onInlineCast());
-        detailControlView(R.id.info, View.class).setOnClickListener(view -> onInlineInfo());
+        detailControlView(R.id.fullscreen, View.class).setOnClickListener(guarded(this::toggleInlineFullscreen));
+        detailControlView(R.id.cast, View.class).setOnClickListener(guarded(this::onInlineCast));
+        detailControlView(R.id.info, View.class).setOnClickListener(guarded(this::onInlineInfo));
         detailControlView(R.id.keep, View.class).setOnClickListener(view -> onKeep());
-        detailControlView(R.id.setting, View.class).setOnClickListener(view -> showInlineDisplay());
-        detailControlView(R.id.danmaku, View.class).setOnClickListener(view -> toggleInlineDanmaku());
-        detailControlView(R.id.lock, View.class).setOnClickListener(view -> toggleInlineLock());
-        detailControlView(R.id.rotate, View.class).setOnClickListener(view -> rotateInlineFullscreen());
-        detailControlView(R.id.pip, View.class).setOnClickListener(view -> enterInlinePiP(true));
-        detailActionView(R.id.player, View.class).setOnClickListener(view -> showInlinePlayerChoice());
+        detailControlView(R.id.setting, View.class).setOnClickListener(guarded(this::showInlineDisplay));
+        detailControlView(R.id.danmaku, View.class).setOnClickListener(guarded(this::toggleInlineDanmaku));
+        detailControlView(R.id.lock, View.class).setOnClickListener(guarded(this::toggleInlineLock));
+        detailControlView(R.id.rotate, View.class).setOnClickListener(guarded(this::rotateInlineFullscreen));
+        detailControlView(R.id.pip, View.class).setOnClickListener(guarded(() -> enterInlinePiP(true)));
+        detailActionView(R.id.player, View.class).setOnClickListener(guarded(this::showInlinePlayerChoice));
         detailActionView(R.id.player, View.class).setOnLongClickListener(view -> showInlinePlayerChoice());
-        detailActionView(R.id.decode, View.class).setOnClickListener(view -> toggleInlineDecode());
-        detailActionView(R.id.speed, View.class).setOnClickListener(view -> changeInlineSpeed());
+        detailActionView(R.id.decode, View.class).setOnClickListener(guarded(this::toggleInlineDecode));
+        detailActionView(R.id.speed, View.class).setOnClickListener(guarded(this::changeInlineSpeed));
         detailActionView(R.id.speed, View.class).setOnLongClickListener(view -> resetInlineSpeed());
-        detailActionView(R.id.scale, View.class).setOnClickListener(view -> cycleInlineScale());
-        detailActionView(R.id.actionQuality, View.class).setOnClickListener(view -> showInlineQuality());
-        detailActionView(R.id.reset, View.class).setOnClickListener(view -> refreshInlinePlayback());
-        detailActionView(R.id.repeat, View.class).setOnClickListener(view -> toggleInlineRepeat());
-        detailActionView(R.id.text, View.class).setOnClickListener(this::showInlineTrack);
+        detailActionView(R.id.scale, View.class).setOnClickListener(guarded(this::cycleInlineScale));
+        detailActionView(R.id.actionQuality, View.class).setOnClickListener(guarded(this::showInlineQuality));
+        detailActionView(R.id.reset, View.class).setOnClickListener(guarded(this::refreshInlinePlayback));
+        detailActionView(R.id.repeat, View.class).setOnClickListener(guarded(this::toggleInlineRepeat));
+        detailActionView(R.id.text, View.class).setOnClickListener(guardedView(this::showInlineTrack));
         detailActionView(R.id.text, View.class).setOnLongClickListener(view -> showInlineSubtitle());
-        detailActionView(R.id.audio, View.class).setOnClickListener(this::showInlineTrack);
-        detailActionView(R.id.video, View.class).setOnClickListener(this::showInlineTrack);
-        detailActionView(R.id.opening, View.class).setOnClickListener(view -> setInlineOpeningFromPosition());
+        detailActionView(R.id.audio, View.class).setOnClickListener(guardedView(this::showInlineTrack));
+        detailActionView(R.id.video, View.class).setOnClickListener(guardedView(this::showInlineTrack));
+        detailActionView(R.id.opening, View.class).setOnClickListener(guarded(this::setInlineOpeningFromPosition));
         detailActionView(R.id.opening, View.class).setOnLongClickListener(view -> resetInlineOpening());
-        detailActionView(R.id.ending, View.class).setOnClickListener(view -> setInlineEndingFromPosition());
+        detailActionView(R.id.ending, View.class).setOnClickListener(guarded(this::setInlineEndingFromPosition));
         detailActionView(R.id.ending, View.class).setOnLongClickListener(view -> resetInlineEnding());
-        detailActionView(R.id.danmaku, View.class).setOnClickListener(view -> showInlineDanmaku());
-        detailActionView(R.id.chapter, View.class).setOnClickListener(view -> showInlineTitle());
-        detailActionView(R.id.episodes, View.class).setOnClickListener(view -> showInlineEpisodes());
+        detailActionView(R.id.danmaku, View.class).setOnClickListener(guarded(this::showInlineDanmaku));
+        detailActionView(R.id.chapter, View.class).setOnClickListener(guarded(this::showInlineTitle));
+        detailActionView(R.id.episodes, View.class).setOnClickListener(guarded(this::showInlineEpisodes));
         setupMobileInlineParse();
         detailControlRoot.setOnTouchListener(this::onInlineControlTouch);
     }
@@ -8160,6 +8160,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
 
     private void prepareInlineStartPosition() {
         long position = getInlineStartPosition();
+        if (position > 0) introSkipPlayback.setResumePosition(position);
         if (position > 0 && service() != null && player() != null && !player().isEmpty()) player().seekTo(position);
     }
 
@@ -8167,6 +8168,7 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         if (inlineStartPositionApplied || history == null || controller() == null) return;
         long position = getInlineStartPosition();
         inlineStartPositionApplied = true;
+        if (position > 0) introSkipPlayback.setResumePosition(position);
         if (position > 0) controller().seekTo(position);
     }
 
@@ -8619,6 +8621,12 @@ public class TmdbDetailActivity extends PlaybackActivity implements TrackDialog.
         binding.keep.setText(text);
         binding.keepTop.setText(text);
         binding.keepFusion.setText(text);
+        updateInlineKeepImg(kept);
+    }
+
+    private void updateInlineKeepImg(boolean kept) {
+        if (!Util.isMobile() || detailControlRoot == null) return;
+        detailControlView(R.id.keep, ImageView.class).setImageResource(kept ? R.drawable.ic_control_keep_on : R.drawable.ic_control_keep_off);
     }
 
     private void changeSource() {
