@@ -26,6 +26,7 @@ import androidx.media3.extractor.ts.TsExtractor;
 
 import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.setting.PlaybackPerformanceSetting;
+import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.PreloadSetting;
 import com.fongmi.android.tv.utils.FileUtil;
 import com.fongmi.android.tv.utils.UrlUtil;
@@ -80,7 +81,7 @@ public class MediaSourceFactory implements MediaSource.Factory {
         long usedBytes = FileUtil.getDirectorySize(dir);
         long availableBytes = Math.max(0, FileUtil.getAvailableStorageSpace(dir));
         long storageBudget = (usedBytes + availableBytes) * CACHE_SPACE_PERCENT / 100;
-        return Math.min(PreloadSetting.getPreloadSizeBytes(), storageBudget);
+        return Math.min(PreloadSetting.getPreloadSizeBytes(PlayerSetting.EXO), storageBudget);
     }
 
     static boolean isConcatenatingUrl(String url) {
